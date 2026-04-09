@@ -4,6 +4,7 @@ import WindowManagerDomain
 public final class CGEventTapAdapter: EventTapPort, @unchecked Sendable {
     private var tapPort: CFMachPort?
     private var runLoopSource: CFRunLoopSource?
+    private var runLoop: CFRunLoop?
     private var handler: ((_ keyCode: UInt16, _ modifiers: ModifierSet) -> Bool)?
 
     public init() {}
@@ -13,6 +14,7 @@ public final class CGEventTapAdapter: EventTapPort, @unchecked Sendable {
     }
 
     public func start(handler: @escaping (_ keyCode: UInt16, _ modifiers: ModifierSet) -> Bool) {
+        stop()
         self.handler = handler
 
         let eventMask = CGEventMask(1 << CGEventType.keyDown.rawValue)
@@ -32,19 +34,22 @@ public final class CGEventTapAdapter: EventTapPort, @unchecked Sendable {
         self.tapPort = tap
         let source = CFMachPortCreateRunLoopSource(kCFAllocatorDefault, tap, 0)
         self.runLoopSource = source
-        CFRunLoopAddSource(CFRunLoopGetCurrent(), source, .commonModes)
+        let rl = CFRunLoopGetCurrent()
+        self.runLoop = rl
+        CFRunLoopAddSource(rl, source, .commonModes)
         CGEvent.tapEnable(tap: tap, enable: true)
     }
 
     public func stop() {
-        if let source = runLoopSource {
-            CFRunLoopRemoveSource(CFRunLoopGetCurrent(), source, .commonModes)
+        if let source = runLoopSource, let rl = runLoop {
+            CFRunLoopRemoveSource(rl, source, .commonModes)
         }
         if let tap = tapPort {
             CGEvent.tapEnable(tap: tap, enable: false)
         }
         tapPort = nil
         runLoopSource = nil
+        runLoop = nil
         handler = nil
     }
 

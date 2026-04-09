@@ -39,6 +39,7 @@ public final class TOMLConfigAdapter: ConfigPort, Sendable {
     private func parseModifiers(_ string: String) -> ModifierSet? {
         var result = ModifierSet()
         let parts = string.lowercased().split(separator: "+").map { $0.trimmingCharacters(in: .whitespaces) }
+        guard !parts.isEmpty else { return nil }
 
         for part in parts {
             switch part {

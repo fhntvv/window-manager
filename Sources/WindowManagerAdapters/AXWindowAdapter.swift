@@ -78,10 +78,15 @@ public final class AXWindowAdapter: WindowAccessPort, @unchecked Sendable {
         lock.unlock()
 
         guard let element else { return nil }
-        return windowInfo(from: element)
+        return buildWindowInfo(from: element, existingID: window.id)
     }
 
     private func windowInfo(from element: AXUIElement) -> WindowInfo? {
+        let id = storeElement(element)
+        return buildWindowInfo(from: element, existingID: id)
+    }
+
+    private func buildWindowInfo(from element: AXUIElement, existingID: Int) -> WindowInfo? {
         guard let position = getPointAttribute(element, kAXPositionAttribute),
               let size = getSizeAttribute(element, kAXSizeAttribute)
         else {
@@ -90,10 +95,9 @@ public final class AXWindowAdapter: WindowAccessPort, @unchecked Sendable {
 
         let isFullscreen = getBoolAttribute(element, "AXFullScreen")
         let screenID = determineScreenID(for: position)
-        let id = storeElement(element)
 
         return WindowInfo(
-            ref: WindowManagerDomain.WindowRef(id: id),
+            ref: WindowManagerDomain.WindowRef(id: existingID),
             position: position,
             size: size,
             screenID: screenID,
