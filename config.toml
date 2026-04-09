@@ -1,0 +1,63 @@
+[general]
+padding = 0
+animation_duration = 0
+
+[[bindings]]
+modifiers = "ctrl+option"
+key = "left"
+action = "leftHalf"
+
+[[bindings]]
+modifiers = "ctrl+option"
+key = "right"
+action = "rightHalf"
+
+[[bindings]]
+modifiers = "ctrl+option"
+key = "up"
+action = "topHalf"
+
+[[bindings]]
+modifiers = "ctrl+option"
+key = "down"
+action = "bottomHalf"
+
+[[bindings]]
+modifiers = "ctrl+option"
+key = "u"
+action = "topLeft"
+
+[[bindings]]
+modifiers = "ctrl+option"
+key = "i"
+action = "topRight"
+
+[[bindings]]
+modifiers = "ctrl+option"
+key = "j"
+action = "bottomLeft"
+
+[[bindings]]
+modifiers = "ctrl+option"
+key = "k"
+action = "bottomRight"
+
+[[bindings]]
+modifiers = "ctrl+option"
+key = "return"
+action = "maximize"
+
+[[bindings]]
+modifiers = "ctrl+option"
+key = "c"
+action = "center"
+
+[[bindings]]
+modifiers = "ctrl+option+command"
+key = "right"
+action = "nextDisplay"
+
+[[bindings]]
+modifiers = "ctrl+option+command"
+key = "left"
+action = "prevDisplay"

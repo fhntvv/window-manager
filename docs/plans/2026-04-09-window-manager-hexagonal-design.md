@@ -251,11 +251,11 @@ Validation: `swift build` for compilation, `swift test --filter DomainTests` for
 
 ### Task 5: Composition root, entry point, config files
 
-- [ ] Create AppCompositionRoot — Accessibility permission check/poll, config loading, adapter creation, service wiring, event tap start, health-check timer (5s), NSApplication run loop with .accessory policy
-- [ ] Create main.swift entry point
-- [ ] Create default config.toml with standard hotkey bindings
-- [ ] Create com.windowmanager.plist LaunchAgent for auto-start
-- [ ] Verify `swift build` succeeds for the executable target
+- [x] Create AppCompositionRoot — Accessibility permission check/poll, config loading, adapter creation, service wiring, event tap start, health-check timer (5s), NSApplication run loop with .accessory policy
+- [x] Create main.swift entry point
+- [x] Create default config.toml with standard hotkey bindings
+- [x] Create com.windowmanager.plist LaunchAgent for auto-start
+- [x] Verify `swift build` succeeds for the executable target
 
 ### Task 6: Integration tests
 
