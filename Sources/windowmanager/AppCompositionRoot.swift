@@ -42,7 +42,9 @@ final class AppCompositionRoot {
             guard let action = matcher.match(keyCode: keyCode, modifiers: modifiers, bindings: bindings) else {
                 return false
             }
-            service.execute(action)
+            DispatchQueue.global(qos: .userInteractive).async {
+                service.execute(action)
+            }
             return true
         }
 

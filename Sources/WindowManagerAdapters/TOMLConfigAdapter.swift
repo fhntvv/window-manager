@@ -11,9 +11,31 @@ public final class TOMLConfigAdapter: ConfigPort, Sendable {
     }
 
     public func loadConfig() throws -> Config {
+        guard FileManager.default.fileExists(atPath: configPath) else {
+            fputs("Config not found at \(configPath), using default bindings.\n", stderr)
+            return defaultConfig()
+        }
         let contents = try String(contentsOfFile: configPath, encoding: .utf8)
         let raw = try TOMLDecoder().decode(RawConfig.self, from: contents)
         return convertConfig(raw)
+    }
+
+    private func defaultConfig() -> Config {
+        let bindings = [
+            HotkeyBinding(modifiers: [.control, .option], keyCode: 0x7B, action: .leftHalf),
+            HotkeyBinding(modifiers: [.control, .option], keyCode: 0x7C, action: .rightHalf),
+            HotkeyBinding(modifiers: [.control, .option], keyCode: 0x7E, action: .topHalf),
+            HotkeyBinding(modifiers: [.control, .option], keyCode: 0x7D, action: .bottomHalf),
+            HotkeyBinding(modifiers: [.control, .option], keyCode: 0x20, action: .topLeft),
+            HotkeyBinding(modifiers: [.control, .option], keyCode: 0x22, action: .topRight),
+            HotkeyBinding(modifiers: [.control, .option], keyCode: 0x26, action: .bottomLeft),
+            HotkeyBinding(modifiers: [.control, .option], keyCode: 0x28, action: .bottomRight),
+            HotkeyBinding(modifiers: [.control, .option], keyCode: 0x24, action: .maximize),
+            HotkeyBinding(modifiers: [.control, .option], keyCode: 0x08, action: .center),
+            HotkeyBinding(modifiers: [.control, .option, .command], keyCode: 0x7C, action: .nextDisplay),
+            HotkeyBinding(modifiers: [.control, .option, .command], keyCode: 0x7B, action: .prevDisplay),
+        ]
+        return Config(bindings: bindings, general: GeneralConfig())
     }
 
     private func convertConfig(_ raw: RawConfig) -> Config {
