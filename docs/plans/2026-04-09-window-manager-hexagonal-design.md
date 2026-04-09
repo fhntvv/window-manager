@@ -225,11 +225,11 @@ Validation: `swift build` for compilation, `swift test --filter DomainTests` for
 
 ### Task 2: TilingEngine + HotkeyMatcher with full tests
 
-- [ ] Implement TilingEngine — pure struct with `computeFrame(action:screen:currentWindow:padding:) -> CGRect` covering all 10 single-screen actions per the calculation table
-- [ ] Implement HotkeyMatcher — pure struct with `match(keyCode:modifiers:bindings:) -> WindowAction?`
-- [ ] Write TilingEngineTests: all actions on 1920x1080 (padding=0), padding>0, menu bar offset, secondary display offset, center preserves size
-- [ ] Write HotkeyMatcherTests: exact match, missing modifier, superset modifiers, unknown keycode, empty bindings
-- [ ] Verify `swift test --filter DomainTests` passes
+- [x] Implement TilingEngine — pure struct with `computeFrame(action:screen:currentWindow:padding:) -> CGRect` covering all 10 single-screen actions per the calculation table
+- [x] Implement HotkeyMatcher — pure struct with `match(keyCode:modifiers:bindings:) -> WindowAction?`
+- [x] Write TilingEngineTests: all actions on 1920x1080 (padding=0), padding>0, menu bar offset, secondary display offset, center preserves size
+- [x] Write HotkeyMatcherTests: exact match, missing modifier, superset modifiers, unknown keycode, empty bindings
+- [x] Verify `swift test --filter DomainTests` passes
 
 ### Task 3: WindowOperationService + FrameRenderer + remaining domain tests
 
