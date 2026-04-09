@@ -44,7 +44,12 @@ public final class NSScreenAdapter: ScreenInfoPort, @unchecked Sendable {
     }
 
     public func primaryScreenHeight() -> CGFloat {
-        NSScreen.screens.first?.frame.height ?? 0
+        if Thread.isMainThread {
+            return NSScreen.screens.first?.frame.height ?? 0
+        }
+        return DispatchQueue.main.sync {
+            NSScreen.screens.first?.frame.height ?? 0
+        }
     }
 
     private func invalidateCache() {
@@ -54,21 +59,29 @@ public final class NSScreenAdapter: ScreenInfoPort, @unchecked Sendable {
     }
 
     private func buildScreenInfos() -> [ScreenInfo] {
-        let nsScreens = NSScreen.screens
-        let primaryHeight = nsScreens.first?.frame.height ?? 0
+        let screenData: [(frame: CGRect, visibleFrame: CGRect, displayID: Int)]
+        if Thread.isMainThread {
+            screenData = NSScreen.screens.map { screen in
+                (frame: screen.frame, visibleFrame: screen.visibleFrame, displayID: screenDisplayID(screen))
+            }
+        } else {
+            screenData = DispatchQueue.main.sync {
+                NSScreen.screens.map { screen in
+                    (frame: screen.frame, visibleFrame: screen.visibleFrame, displayID: screenDisplayID(screen))
+                }
+            }
+        }
 
-        return nsScreens.map { screen in
-            let displayID = screenDisplayID(screen)
-            let isPrimary = screen == nsScreens.first
+        let primaryHeight = screenData.first?.frame.height ?? 0
 
-            let frameAX = convertToAX(rect: screen.frame, primaryHeight: primaryHeight)
-            let visibleFrameAX = convertToAX(rect: screen.visibleFrame, primaryHeight: primaryHeight)
-
+        return screenData.enumerated().map { index, data in
+            let frameAX = convertToAX(rect: data.frame, primaryHeight: primaryHeight)
+            let visibleFrameAX = convertToAX(rect: data.visibleFrame, primaryHeight: primaryHeight)
             return ScreenInfo(
-                id: displayID,
+                id: data.displayID,
                 frame: frameAX,
                 visibleFrame: visibleFrameAX,
-                isPrimary: isPrimary
+                isPrimary: index == 0
             )
         }
     }

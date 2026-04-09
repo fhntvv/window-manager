@@ -111,6 +111,10 @@ public final class AXWindowAdapter: WindowAccessPort, @unchecked Sendable {
         let id = nextID
         nextID += 1
         windowElements[id] = element
+        if windowElements.count > 64 {
+            let threshold = id - 8
+            windowElements = windowElements.filter { $0.key > threshold }
+        }
         return id
     }
 
@@ -147,24 +151,35 @@ public final class AXWindowAdapter: WindowAccessPort, @unchecked Sendable {
     }
 
     private func determineScreenID(for position: CGPoint) -> Int {
-        let screens = NSScreen.screens
-        let primaryHeight = screens.first?.frame.height ?? 0
-
-        for screen in screens {
-            let displayID = screenDisplayID(screen)
-            let axY = primaryHeight - screen.frame.origin.y - screen.frame.height
-            let axFrame = CGRect(
-                x: screen.frame.origin.x,
-                y: axY,
-                width: screen.frame.width,
-                height: screen.frame.height
-            )
-            if axFrame.contains(position) {
-                return displayID
+        let screenData: [(frame: CGRect, displayID: Int)]
+        if Thread.isMainThread {
+            screenData = NSScreen.screens.map { screen in
+                (frame: screen.frame, displayID: screenDisplayID(screen))
+            }
+        } else {
+            screenData = DispatchQueue.main.sync {
+                NSScreen.screens.map { screen in
+                    (frame: screen.frame, displayID: screenDisplayID(screen))
+                }
             }
         }
 
-        return screens.first.map { screenDisplayID($0) } ?? 0
+        let primaryHeight = screenData.first?.frame.height ?? 0
+
+        for data in screenData {
+            let axY = primaryHeight - data.frame.origin.y - data.frame.height
+            let axFrame = CGRect(
+                x: data.frame.origin.x,
+                y: axY,
+                width: data.frame.width,
+                height: data.frame.height
+            )
+            if axFrame.contains(position) {
+                return data.displayID
+            }
+        }
+
+        return screenData.first?.displayID ?? 0
     }
 }
 

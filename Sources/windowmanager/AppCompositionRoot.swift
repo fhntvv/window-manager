@@ -9,6 +9,7 @@ final class AppCompositionRoot {
     private let config: Config
     private let hotkeyMatcher: HotkeyMatcher
     private var healthCheckTimer: Timer?
+    private let operationQueue = DispatchQueue(label: "windowmanager.operations", qos: .userInteractive)
 
     init() throws {
         Self.waitForAccessibility()
@@ -37,12 +38,13 @@ final class AppCompositionRoot {
         let bindings = config.bindings
         let matcher = hotkeyMatcher
         let service = windowService
+        let queue = operationQueue
 
         eventTap.start { keyCode, modifiers in
             guard let action = matcher.match(keyCode: keyCode, modifiers: modifiers, bindings: bindings) else {
                 return false
             }
-            DispatchQueue.global(qos: .userInteractive).async {
+            queue.async {
                 service.execute(action)
             }
             return true
