@@ -223,4 +223,22 @@ struct TilingEngineTests {
         #expect(frame.origin.x == 2480)
         #expect(frame.origin.y == 240)
     }
+
+    // MARK: - nextDisplay / prevDisplay
+
+    @Test func nextDisplayReturnsFullVisibleFrame() {
+        let frame = engine.computeFrame(action: .nextDisplay, screen: standardScreen, currentWindow: dummyWindow)
+        expectFrame(frame, rect(0, 0, 1920, 1080))
+    }
+
+    @Test func prevDisplayReturnsFullVisibleFrame() {
+        let screen = ScreenInfo(
+            id: 1,
+            frame: rect(1920, 0, 2560, 1440),
+            visibleFrame: rect(1920, 25, 2560, 1415),
+            isPrimary: false
+        )
+        let frame = engine.computeFrame(action: .prevDisplay, screen: screen, currentWindow: dummyWindow)
+        expectFrame(frame, rect(1920, 25, 2560, 1415))
+    }
 }

@@ -115,4 +115,58 @@ struct WindowOperationServiceTests {
         #expect(call.position.x == 960)
         #expect(call.size.width == 960)
     }
+
+    @Test func emptyScreensDoesNothing() {
+        let fakeAccess = FakeWindowAccess()
+        let fakeScreens = FakeScreenInfo()
+        fakeScreens.screens = []
+        fakeAccess.focusedWindow = window()
+        let service = WindowOperationService(windowAccess: fakeAccess, screenInfo: fakeScreens)
+
+        service.execute(.leftHalf)
+
+        #expect(fakeAccess.setFrameCalls.isEmpty)
+    }
+
+    @Test func screenFallbackToContainingPoint() {
+        let fakeAccess = FakeWindowAccess()
+        let fakeScreens = FakeScreenInfo()
+        fakeScreens.screens = [screen(0), screen(1, x: 1920)]
+        fakeAccess.focusedWindow = window(x: 2000, y: 100, screenID: 99)
+        let service = WindowOperationService(windowAccess: fakeAccess, screenInfo: fakeScreens)
+
+        service.execute(.maximize)
+
+        #expect(fakeAccess.setFrameCalls.count == 1)
+        let call = fakeAccess.setFrameCalls[0]
+        #expect(call.position.x == 1920)
+        #expect(call.size.width == 1920)
+    }
+
+    @Test func screenFallbackToFirstScreen() {
+        let fakeAccess = FakeWindowAccess()
+        let fakeScreens = FakeScreenInfo()
+        fakeScreens.screens = [screen(0)]
+        fakeAccess.focusedWindow = window(x: 9999, y: 9999, screenID: 99)
+        let service = WindowOperationService(windowAccess: fakeAccess, screenInfo: fakeScreens)
+
+        service.execute(.maximize)
+
+        #expect(fakeAccess.setFrameCalls.count == 1)
+        let call = fakeAccess.setFrameCalls[0]
+        #expect(call.position.x == 0)
+        #expect(call.size.width == 1920)
+    }
+
+    @Test func displayMoveUnknownScreenDoesNothing() {
+        let fakeAccess = FakeWindowAccess()
+        let fakeScreens = FakeScreenInfo()
+        fakeScreens.screens = [screen(0), screen(1, x: 1920)]
+        fakeAccess.focusedWindow = window(screenID: 99)
+        let service = WindowOperationService(windowAccess: fakeAccess, screenInfo: fakeScreens)
+
+        service.execute(.nextDisplay)
+
+        #expect(fakeAccess.setFrameCalls.isEmpty)
+    }
 }

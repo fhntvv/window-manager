@@ -17,6 +17,7 @@ final class AppCompositionRoot {
         do {
             self.config = try configAdapter.loadConfig()
         } catch {
+            fputs("Warning: failed to load config: \(error). Using defaults.\n", stderr)
             self.config = Config(bindings: [], general: GeneralConfig())
         }
 

@@ -54,11 +54,11 @@ public final class CGEventTapAdapter: EventTapPort, @unchecked Sendable {
     fileprivate func handleEvent(type: CGEventType, event: CGEvent) -> Unmanaged<CGEvent>? {
         if type == .tapDisabledByTimeout || type == .tapDisabledByUserInput {
             ensureEnabled()
-            return Unmanaged.passRetained(event)
+            return Unmanaged.passUnretained(event)
         }
 
         guard type == .keyDown, let handler else {
-            return Unmanaged.passRetained(event)
+            return Unmanaged.passUnretained(event)
         }
 
         let keyCode = UInt16(event.getIntegerValueField(.keyboardEventKeycode))
@@ -68,7 +68,7 @@ public final class CGEventTapAdapter: EventTapPort, @unchecked Sendable {
             return nil
         }
 
-        return Unmanaged.passRetained(event)
+        return Unmanaged.passUnretained(event)
     }
 
     private func convertFlags(_ flags: CGEventFlags) -> ModifierSet {
@@ -88,7 +88,7 @@ private func cgEventTapCallback(
     userInfo: UnsafeMutableRawPointer?
 ) -> Unmanaged<CGEvent>? {
     guard let userInfo else {
-        return Unmanaged.passRetained(event)
+        return Unmanaged.passUnretained(event)
     }
     let adapter = Unmanaged<CGEventTapAdapter>.fromOpaque(userInfo).takeUnretainedValue()
     return adapter.handleEvent(type: type, event: event)
