@@ -243,11 +243,11 @@ Validation: `swift build` for compilation, `swift test --filter DomainTests` for
 
 ### Task 4: All adapters
 
-- [ ] Implement AXWindowAdapter: WindowAccessPort — AXUIElement getFocusedWindow, setWindowFrame with retry logic (3x, 50ms), getWindowInfo
-- [ ] Implement NSScreenAdapter: ScreenInfoPort — NSScreen.screens conversion with AX coordinate transform, screen change notification invalidation
-- [ ] Implement CGEventTapAdapter: EventTapPort — CGEvent.tapCreate, CFRunLoopSource, CGEventFlags→ModifierSet, event swallowing for matched keys
-- [ ] Implement TOMLConfigAdapter: ConfigPort — TOML parsing, modifier string→ModifierSet, key name→keyCode mapping, default fallback
-- [ ] Verify `swift build` succeeds for the adapters target
+- [x] Implement AXWindowAdapter: WindowAccessPort — AXUIElement getFocusedWindow, setWindowFrame with retry logic (3x, 50ms), getWindowInfo
+- [x] Implement NSScreenAdapter: ScreenInfoPort — NSScreen.screens conversion with AX coordinate transform, screen change notification invalidation
+- [x] Implement CGEventTapAdapter: EventTapPort — CGEvent.tapCreate, CFRunLoopSource, CGEventFlags→ModifierSet, event swallowing for matched keys
+- [x] Implement TOMLConfigAdapter: ConfigPort — TOML parsing, modifier string→ModifierSet, key name→keyCode mapping, default fallback
+- [x] Verify `swift build` succeeds for the adapters target
 
 ### Task 5: Composition root, entry point, config files
 
