@@ -259,9 +259,9 @@ Validation: `swift build` for compilation, `swift test --filter DomainTests` for
 
 ### Task 6: Integration tests
 
-- [ ] Create AccessibilitySkip helper (XCTSkipUnless(AXIsProcessTrusted()))
-- [ ] Write NSScreenAdapterTests — allScreens non-empty, primary isPrimary, visibleFrame within frame
-- [ ] Write AXWindowAdapterTests — getFocusedWindow returns valid dimensions
-- [ ] Write CGEventTapAdapterTests — tap creation succeeds, start/stop don't crash
-- [ ] Write TOMLConfigAdapterTests — load valid config, missing file throws
-- [ ] Verify `swift test --filter IntegrationTests` compiles (tests will skip without Accessibility)
+- [x] Create AccessibilitySkip helper (XCTSkipUnless(AXIsProcessTrusted()))
+- [x] Write NSScreenAdapterTests — allScreens non-empty, primary isPrimary, visibleFrame within frame
+- [x] Write AXWindowAdapterTests — getFocusedWindow returns valid dimensions
+- [x] Write CGEventTapAdapterTests — tap creation succeeds, start/stop don't crash
+- [x] Write TOMLConfigAdapterTests — load valid config, missing file throws
+- [x] Verify `swift test --filter IntegrationTests` compiles (tests will skip without Accessibility)
