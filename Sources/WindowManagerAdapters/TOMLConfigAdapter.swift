@@ -13,14 +13,16 @@ public final class TOMLConfigAdapter: ConfigPort, Sendable {
     public func loadConfig() throws -> Config {
         guard FileManager.default.fileExists(atPath: configPath) else {
             fputs("Config not found at \(configPath), using default bindings.\n", stderr)
-            return defaultConfig()
+            return Self.defaultConfig
         }
         let contents = try String(contentsOfFile: configPath, encoding: .utf8)
         let raw = try TOMLDecoder().decode(RawConfig.self, from: contents)
         return convertConfig(raw)
     }
 
-    private func defaultConfig() -> Config {
+    public static var defaultConfig: Config { Self.makeDefaultConfig() }
+
+    private static func makeDefaultConfig() -> Config {
         let bindings = [
             HotkeyBinding(modifiers: [.control, .option], keyCode: 0x7B, action: .leftHalf),
             HotkeyBinding(modifiers: [.control, .option], keyCode: 0x7C, action: .rightHalf),

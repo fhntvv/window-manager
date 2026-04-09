@@ -28,11 +28,10 @@ struct TOMLConfigAdapterTests {
         #expect(leftHalf?.keyCode == 0x7B)
     }
 
-    @Test func missingFileThrows() {
+    @Test func missingFileReturnsDefaults() throws {
         let adapter = TOMLConfigAdapter(configPath: "/nonexistent/path/config.toml")
-        #expect(throws: (any Error).self) {
-            try adapter.loadConfig()
-        }
+        let config = try adapter.loadConfig()
+        #expect(config.bindings.count == 12)
     }
 
     @Test func configGeneralSettings() throws {

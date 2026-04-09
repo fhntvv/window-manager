@@ -110,7 +110,6 @@ public final class AXWindowAdapter: WindowAccessPort, @unchecked Sendable {
         defer { lock.unlock() }
         let id = nextID
         nextID += 1
-        windowElements.removeAll()
         windowElements[id] = element
         return id
     }
