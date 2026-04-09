@@ -27,6 +27,7 @@ public final class TOMLConfigAdapter: ConfigPort, Sendable {
                   let keyCode = keyNameToCode(rawBinding.key),
                   let action = WindowAction(rawValue: rawBinding.action)
             else {
+                fputs("Warning: skipping invalid binding (modifiers=\(rawBinding.modifiers), key=\(rawBinding.key), action=\(rawBinding.action))\n", stderr)
                 return nil
             }
             return HotkeyBinding(modifiers: modifiers, keyCode: keyCode, action: action)

@@ -48,20 +48,20 @@ public final class AXWindowAdapter: WindowAccessPort, @unchecked Sendable {
                 usleep(50_000)
             }
 
-            var pos = position
-            guard let posValue = AXValueCreate(.cgPoint, &pos) else { continue }
-            let posResult = AXUIElementSetAttributeValue(
-                element,
-                kAXPositionAttribute as CFString,
-                posValue
-            )
-
             var sz = size
             guard let sizeValue = AXValueCreate(.cgSize, &sz) else { continue }
             let sizeResult = AXUIElementSetAttributeValue(
                 element,
                 kAXSizeAttribute as CFString,
                 sizeValue
+            )
+
+            var pos = position
+            guard let posValue = AXValueCreate(.cgPoint, &pos) else { continue }
+            let posResult = AXUIElementSetAttributeValue(
+                element,
+                kAXPositionAttribute as CFString,
+                posValue
             )
 
             if posResult == .success && sizeResult == .success {

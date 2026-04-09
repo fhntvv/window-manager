@@ -8,6 +8,10 @@ public final class CGEventTapAdapter: EventTapPort, @unchecked Sendable {
 
     public init() {}
 
+    deinit {
+        stop()
+    }
+
     public func start(handler: @escaping (_ keyCode: UInt16, _ modifiers: ModifierSet) -> Bool) {
         self.handler = handler
 
