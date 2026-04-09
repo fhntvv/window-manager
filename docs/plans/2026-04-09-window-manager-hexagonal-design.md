@@ -233,13 +233,13 @@ Validation: `swift build` for compilation, `swift test --filter DomainTests` for
 
 ### Task 3: WindowOperationService + FrameRenderer + remaining domain tests
 
-- [ ] Create test fakes: FakeWindowAccess (WindowAccessPort) and FakeScreenInfo (ScreenInfoPort)
-- [ ] Implement WindowOperationService — orchestrator injected with ports + TilingEngine. execute() handles single-screen actions and nextDisplay/prevDisplay triple-write
-- [ ] Implement FrameRenderer — pure struct `render(screens:windows:scale:) -> String` producing ASCII art
-- [ ] Write WindowOperationServiceTests: leftHalf frame, no focused window, fullscreen skip, nextDisplay triple-write (3 calls), prevDisplay wraps
-- [ ] Write ConfigTests: model creation, default GeneralConfig, ModifierSet contains checks
-- [ ] Write FrameRendererTests: leftHalf before/after, dual display migration, four quarters
-- [ ] Verify `swift test --filter DomainTests` passes
+- [x] Create test fakes: FakeWindowAccess (WindowAccessPort) and FakeScreenInfo (ScreenInfoPort)
+- [x] Implement WindowOperationService — orchestrator injected with ports + TilingEngine. execute() handles single-screen actions and nextDisplay/prevDisplay triple-write
+- [x] Implement FrameRenderer — pure struct `render(screens:windows:scale:) -> String` producing ASCII art
+- [x] Write WindowOperationServiceTests: leftHalf frame, no focused window, fullscreen skip, nextDisplay triple-write (3 calls), prevDisplay wraps
+- [x] Write ConfigTests: model creation, default GeneralConfig, ModifierSet contains checks
+- [x] Write FrameRendererTests: leftHalf before/after, dual display migration, four quarters
+- [x] Verify `swift test --filter DomainTests` passes
 
 ### Task 4: All adapters
 
