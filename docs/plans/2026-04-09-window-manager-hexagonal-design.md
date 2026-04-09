@@ -210,3 +210,58 @@ All guarded by `try XCTSkipUnless(AXIsProcessTrusted())`.
 6. **Electron app retry** — AX operations on VS Code, Slack need 3 retries with 50ms delays.
 7. **Fullscreen check** — always check isFullscreen before operations. AX calls silently fail on fullscreen windows.
 8. **Minimum window sizes** — some apps clamp size. Read back after setting, adjust position if actual != requested.
+
+## Implementation Tasks
+
+Validation: `swift build` for compilation, `swift test --filter DomainTests` for domain tests.
+
+### Task 1: Project scaffolding, domain models, and domain ports
+
+- [x] Create Package.swift with 3 library/exe targets (WindowManagerDomain, WindowManagerAdapters, windowmanager) + 2 test targets (DomainTests, IntegrationTests). Single dependency: TOMLDecoder.
+- [x] Create Resources/Info.plist (LSUIElement=true) and Resources/Entitlements.plist (empty)
+- [x] Create all domain models: WindowRef, WindowInfo, ScreenInfo, WindowAction, HotkeyBinding (with ModifierSet), Config (with GeneralConfig)
+- [x] Create all domain port protocols: WindowAccessPort, ScreenInfoPort, ConfigPort, EventTapPort
+- [x] Verify `swift build` succeeds for the domain target
+
+### Task 2: TilingEngine + HotkeyMatcher with full tests
+
+- [ ] Implement TilingEngine — pure struct with `computeFrame(action:screen:currentWindow:padding:) -> CGRect` covering all 10 single-screen actions per the calculation table
+- [ ] Implement HotkeyMatcher — pure struct with `match(keyCode:modifiers:bindings:) -> WindowAction?`
+- [ ] Write TilingEngineTests: all actions on 1920x1080 (padding=0), padding>0, menu bar offset, secondary display offset, center preserves size
+- [ ] Write HotkeyMatcherTests: exact match, missing modifier, superset modifiers, unknown keycode, empty bindings
+- [ ] Verify `swift test --filter DomainTests` passes
+
+### Task 3: WindowOperationService + FrameRenderer + remaining domain tests
+
+- [ ] Create test fakes: FakeWindowAccess (WindowAccessPort) and FakeScreenInfo (ScreenInfoPort)
+- [ ] Implement WindowOperationService — orchestrator injected with ports + TilingEngine. execute() handles single-screen actions and nextDisplay/prevDisplay triple-write
+- [ ] Implement FrameRenderer — pure struct `render(screens:windows:scale:) -> String` producing ASCII art
+- [ ] Write WindowOperationServiceTests: leftHalf frame, no focused window, fullscreen skip, nextDisplay triple-write (3 calls), prevDisplay wraps
+- [ ] Write ConfigTests: model creation, default GeneralConfig, ModifierSet contains checks
+- [ ] Write FrameRendererTests: leftHalf before/after, dual display migration, four quarters
+- [ ] Verify `swift test --filter DomainTests` passes
+
+### Task 4: All adapters
+
+- [ ] Implement AXWindowAdapter: WindowAccessPort — AXUIElement getFocusedWindow, setWindowFrame with retry logic (3x, 50ms), getWindowInfo
+- [ ] Implement NSScreenAdapter: ScreenInfoPort — NSScreen.screens conversion with AX coordinate transform, screen change notification invalidation
+- [ ] Implement CGEventTapAdapter: EventTapPort — CGEvent.tapCreate, CFRunLoopSource, CGEventFlags→ModifierSet, event swallowing for matched keys
+- [ ] Implement TOMLConfigAdapter: ConfigPort — TOML parsing, modifier string→ModifierSet, key name→keyCode mapping, default fallback
+- [ ] Verify `swift build` succeeds for the adapters target
+
+### Task 5: Composition root, entry point, config files
+
+- [ ] Create AppCompositionRoot — Accessibility permission check/poll, config loading, adapter creation, service wiring, event tap start, health-check timer (5s), NSApplication run loop with .accessory policy
+- [ ] Create main.swift entry point
+- [ ] Create default config.toml with standard hotkey bindings
+- [ ] Create com.windowmanager.plist LaunchAgent for auto-start
+- [ ] Verify `swift build` succeeds for the executable target
+
+### Task 6: Integration tests
+
+- [ ] Create AccessibilitySkip helper (XCTSkipUnless(AXIsProcessTrusted()))
+- [ ] Write NSScreenAdapterTests — allScreens non-empty, primary isPrimary, visibleFrame within frame
+- [ ] Write AXWindowAdapterTests — getFocusedWindow returns valid dimensions
+- [ ] Write CGEventTapAdapterTests — tap creation succeeds, start/stop don't crash
+- [ ] Write TOMLConfigAdapterTests — load valid config, missing file throws
+- [ ] Verify `swift test --filter IntegrationTests` compiles (tests will skip without Accessibility)
