@@ -28,6 +28,7 @@ public final class CGEventTapAdapter: EventTapPort, @unchecked Sendable {
             callback: cgEventTapCallback,
             userInfo: userInfo
         ) else {
+            fputs("Error: failed to create event tap. Hotkeys will not work.\n", stderr)
             return
         }
 
