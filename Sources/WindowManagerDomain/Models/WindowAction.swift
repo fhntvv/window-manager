@@ -8,6 +8,7 @@ public enum WindowAction: String, CaseIterable, Equatable, Sendable {
     case bottomLeft
     case bottomRight
     case maximize
+    case fullscreen
     case center
     case nextDisplay
     case prevDisplay

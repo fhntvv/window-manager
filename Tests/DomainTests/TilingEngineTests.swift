@@ -80,6 +80,28 @@ struct TilingEngineTests {
         expectFrame(frame, rect(0, 0, 1920, 1080))
     }
 
+    @Test func fullscreenUsesFullFrame() {
+        let screen = ScreenInfo(
+            id: 0,
+            frame: rect(0, 0, 1920, 1080),
+            visibleFrame: rect(0, 25, 1920, 1055),
+            isPrimary: true
+        )
+        let frame = engine.computeFrame(action: .fullscreen, screen: screen, currentWindow: dummyWindow)
+        expectFrame(frame, rect(0, 0, 1920, 1080))
+    }
+
+    @Test func fullscreenIgnoresPadding() {
+        let screen = ScreenInfo(
+            id: 0,
+            frame: rect(0, 0, 1920, 1080),
+            visibleFrame: rect(0, 25, 1920, 1055),
+            isPrimary: true
+        )
+        let frame = engine.computeFrame(action: .fullscreen, screen: screen, currentWindow: dummyWindow, padding: 10)
+        expectFrame(frame, rect(0, 0, 1920, 1080))
+    }
+
     @Test func centerNoPadding() {
         let frame = engine.computeFrame(action: .center, screen: standardScreen, currentWindow: dummyWindow)
         expectFrame(frame, rect(560, 240, 800, 600))

@@ -71,8 +71,15 @@ public final class CGEventTapAdapter: EventTapPort, @unchecked Sendable {
             return Unmanaged.passUnretained(event)
         }
 
+        let rawFlags = event.flags
+        // Early bail: skip events without at least one modifier held.
+        // Avoids processing plain keystrokes entirely.
+        guard rawFlags.contains(.maskControl) || rawFlags.contains(.maskCommand) else {
+            return Unmanaged.passUnretained(event)
+        }
+
         let keyCode = UInt16(event.getIntegerValueField(.keyboardEventKeycode))
-        let modifiers = convertFlags(event.flags)
+        let modifiers = convertFlags(rawFlags)
 
         if handler(keyCode, modifiers) {
             return nil

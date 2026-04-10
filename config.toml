@@ -49,6 +49,11 @@ action = "maximize"
 
 [[bindings]]
 modifiers = "ctrl+option"
+key = "f"
+action = "fullscreen"
+
+[[bindings]]
+modifiers = "ctrl+option"
 key = "c"
 action = "center"
 

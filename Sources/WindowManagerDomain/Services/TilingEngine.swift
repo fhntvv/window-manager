@@ -74,6 +74,9 @@ public struct TilingEngine: Sendable {
                 size: CGSize(width: w - 2 * p, height: h - 2 * p)
             )
 
+        case .fullscreen:
+            return screen.frame
+
         case .center:
             return CGRect(
                 origin: CGPoint(x: mx - currentWindow.size.width / 2, y: my - currentWindow.size.height / 2),

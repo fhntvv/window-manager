@@ -33,6 +33,7 @@ public final class TOMLConfigAdapter: ConfigPort, Sendable {
             HotkeyBinding(modifiers: [.control, .option], keyCode: 0x26, action: .bottomLeft),
             HotkeyBinding(modifiers: [.control, .option], keyCode: 0x28, action: .bottomRight),
             HotkeyBinding(modifiers: [.control, .option], keyCode: 0x24, action: .maximize),
+            HotkeyBinding(modifiers: [.control, .option], keyCode: 0x03, action: .fullscreen),
             HotkeyBinding(modifiers: [.control, .option], keyCode: 0x08, action: .center),
             HotkeyBinding(modifiers: [.control, .option, .command], keyCode: 0x7C, action: .nextDisplay),
             HotkeyBinding(modifiers: [.control, .option, .command], keyCode: 0x7B, action: .prevDisplay),
