@@ -6,7 +6,7 @@ import Foundation
 @Suite("AXWindowAdapter")
 struct AXWindowAdapterTests {
 
-    let adapter = AXWindowAdapter()
+    let adapter = AXWindowAdapter(screenInfo: NSScreenAdapter())
 
     @Test(.enabled(if: isAccessibilityTrusted))
     func getFocusedWindowReturnsValidDimensions() {

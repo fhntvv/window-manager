@@ -69,6 +69,10 @@ struct WindowOperationServiceTests {
         service.execute(.nextDisplay)
 
         #expect(fakeAccess.setFrameCalls.count == 3)
+        // Shrink step uses min(window, target), not hardcoded 100x100
+        let shrinkCall = fakeAccess.setFrameCalls[0]
+        #expect(shrinkCall.size.width == 800)  // window fits, keep original
+        #expect(shrinkCall.size.height == 600)
         let finalCall = fakeAccess.setFrameCalls[2]
         #expect(finalCall.position.x == 1920)
         #expect(finalCall.size.width == 1920)

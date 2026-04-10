@@ -91,3 +91,8 @@ public final class NSScreenAdapter: ScreenInfoPort, @unchecked Sendable {
         return CGRect(x: rect.origin.x, y: axY, width: rect.width, height: rect.height)
     }
 }
+
+private func screenDisplayID(_ screen: NSScreen) -> Int {
+    let key = NSDeviceDescriptionKey("NSScreenNumber")
+    return screen.deviceDescription[key] as? Int ?? 0
+}

@@ -22,8 +22,8 @@ final class AppCompositionRoot {
             self.config = TOMLConfigAdapter.defaultConfig
         }
 
-        let windowAccess = AXWindowAdapter()
         let screenInfo = NSScreenAdapter()
+        let windowAccess = AXWindowAdapter(screenInfo: screenInfo)
         self.eventTap = CGEventTapAdapter()
         self.hotkeyMatcher = HotkeyMatcher()
 

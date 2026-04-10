@@ -65,9 +65,12 @@ public final class WindowOperationService: Sendable {
         )
 
         // Triple-write: shrink → move → resize
-        let smallSize = CGSize(width: 100, height: 100)
-        _ = windowAccess.setWindowFrame(window.ref, position: window.position, size: smallSize)
-        _ = windowAccess.setWindowFrame(window.ref, position: targetFrame.origin, size: smallSize)
+        let shrunkSize = CGSize(
+            width: min(window.size.width, targetScreen.visibleFrame.size.width),
+            height: min(window.size.height, targetScreen.visibleFrame.size.height)
+        )
+        _ = windowAccess.setWindowFrame(window.ref, position: window.position, size: shrunkSize)
+        _ = windowAccess.setWindowFrame(window.ref, position: targetFrame.origin, size: shrunkSize)
         _ = windowAccess.setWindowFrame(window.ref, position: targetFrame.origin, size: targetFrame.size)
     }
 }

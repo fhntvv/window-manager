@@ -6,8 +6,11 @@ public final class AXWindowAdapter: WindowAccessPort, @unchecked Sendable {
     private let lock = NSLock()
     private var windowElements: [Int: AXUIElement] = [:]
     private var nextID: Int = 1
+    private let screenInfo: any ScreenInfoPort & Sendable
 
-    public init() {}
+    public init(screenInfo: any ScreenInfoPort & Sendable) {
+        self.screenInfo = screenInfo
+    }
 
     public func getFocusedWindow() -> WindowInfo? {
         let systemWide = AXUIElementCreateSystemWide()
@@ -94,7 +97,7 @@ public final class AXWindowAdapter: WindowAccessPort, @unchecked Sendable {
         }
 
         let isFullscreen = getBoolAttribute(element, "AXFullScreen")
-        let screenID = determineScreenID(for: position)
+        let screenID = screenInfo.screenContaining(point: position)?.id ?? 0
 
         return WindowInfo(
             ref: WindowManagerDomain.WindowRef(id: existingID),
@@ -150,40 +153,4 @@ public final class AXWindowAdapter: WindowAccessPort, @unchecked Sendable {
         return (value as? Bool) ?? false
     }
 
-    private func determineScreenID(for position: CGPoint) -> Int {
-        let screenData: [(frame: CGRect, displayID: Int)]
-        if Thread.isMainThread {
-            screenData = NSScreen.screens.map { screen in
-                (frame: screen.frame, displayID: screenDisplayID(screen))
-            }
-        } else {
-            screenData = DispatchQueue.main.sync {
-                NSScreen.screens.map { screen in
-                    (frame: screen.frame, displayID: screenDisplayID(screen))
-                }
-            }
-        }
-
-        let primaryHeight = screenData.first?.frame.height ?? 0
-
-        for data in screenData {
-            let axY = primaryHeight - data.frame.origin.y - data.frame.height
-            let axFrame = CGRect(
-                x: data.frame.origin.x,
-                y: axY,
-                width: data.frame.width,
-                height: data.frame.height
-            )
-            if axFrame.contains(position) {
-                return data.displayID
-            }
-        }
-
-        return screenData.first?.displayID ?? 0
-    }
-}
-
-func screenDisplayID(_ screen: NSScreen) -> Int {
-    let key = NSDeviceDescriptionKey("NSScreenNumber")
-    return screen.deviceDescription[key] as? Int ?? 0
 }
