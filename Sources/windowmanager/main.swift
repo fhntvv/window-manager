@@ -1,4 +1,5 @@
 import Foundation
+import os
 
 do {
     try MainActor.assumeIsolated {
@@ -6,6 +7,7 @@ do {
         root.run()
     }
 } catch {
-    fputs("Failed to start: \(error)\n", stderr)
+    let logger = Logger(subsystem: "com.windowmanager", category: "Lifecycle")
+    logger.fault("Failed to start: \(error, privacy: .public)")
     exit(1)
 }

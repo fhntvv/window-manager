@@ -1,4 +1,5 @@
 import CoreGraphics
+import os
 import WindowManagerDomain
 
 public final class CGEventTapAdapter: EventTapPort, @unchecked Sendable {
@@ -28,7 +29,7 @@ public final class CGEventTapAdapter: EventTapPort, @unchecked Sendable {
             callback: cgEventTapCallback,
             userInfo: userInfo
         ) else {
-            fputs("Error: failed to create event tap. Hotkeys will not work.\n", stderr)
+            Log.eventTap.error("Failed to create event tap — hotkeys will not work")
             return
         }
 
@@ -39,6 +40,7 @@ public final class CGEventTapAdapter: EventTapPort, @unchecked Sendable {
         self.runLoop = rl
         CFRunLoopAddSource(rl, source, .commonModes)
         CGEvent.tapEnable(tap: tap, enable: true)
+        Log.eventTap.info("Event tap created and enabled")
     }
 
     public func stop() {
@@ -47,6 +49,7 @@ public final class CGEventTapAdapter: EventTapPort, @unchecked Sendable {
         }
         if let tap = tapPort {
             CGEvent.tapEnable(tap: tap, enable: false)
+            Log.eventTap.info("Event tap stopped")
         }
         tapPort = nil
         runLoopSource = nil
@@ -57,12 +60,14 @@ public final class CGEventTapAdapter: EventTapPort, @unchecked Sendable {
     public func ensureEnabled() {
         guard let tap = tapPort else { return }
         if !CGEvent.tapIsEnabled(tap: tap) {
+            Log.eventTap.warning("Event tap was disabled by system — re-enabling")
             CGEvent.tapEnable(tap: tap, enable: true)
         }
     }
 
     fileprivate func handleEvent(type: CGEventType, event: CGEvent) -> Unmanaged<CGEvent>? {
         if type == .tapDisabledByTimeout || type == .tapDisabledByUserInput {
+            Log.eventTap.warning("Event tap disabled by \(type == .tapDisabledByTimeout ? "timeout" : "user input", privacy: .public) — re-enabling")
             ensureEnabled()
             return Unmanaged.passUnretained(event)
         }

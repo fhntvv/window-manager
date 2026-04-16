@@ -1,0 +1,64 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*.*.*']
+
+jobs:
+  release:
+    runs-on: macos-14
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Extract version from tag
+        id: version
+        run: echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+
+      - name: Build unsigned DMG
+        env:
+          SKIP_SIGN: "true"
+        run: ./scripts/build-release.sh ${{ steps.version.outputs.version }}
+
+      - name: Compute SHA256
+        id: sha
+        run: |
+          SHA=$(shasum -a 256 .build/release-bundle/WindowManager-${{ steps.version.outputs.version }}.dmg | awk '{print $1}')
+          echo "sha256=$SHA" >> "$GITHUB_OUTPUT"
+
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "v${{ steps.version.outputs.version }}" \
+            ".build/release-bundle/WindowManager-${{ steps.version.outputs.version }}.dmg" \
+            --title "v${{ steps.version.outputs.version }}" \
+            --generate-notes
+
+      - name: Checkout tap repo
+        uses: actions/checkout@v4
+        with:
+          repository: fhntvv/homebrew-apps
+          token: ${{ secrets.TAP_REPO_TOKEN }}
+          path: tap
+
+      - name: Update cask
+        run: |
+          mkdir -p tap/Casks
+          sed -e "s/@VERSION@/${{ steps.version.outputs.version }}/g" \
+              -e "s/@SHA256@/${{ steps.sha.outputs.sha256 }}/g" \
+              homebrew/windowmanager.rb > tap/Casks/windowmanager.rb
+
+      - name: Commit and push cask
+        working-directory: tap
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add Casks/windowmanager.rb
+          if git diff --cached --quiet; then
+            echo "No changes to cask"
+            exit 0
+          fi
+          git commit -m "windowmanager ${{ steps.version.outputs.version }}"
+          git push

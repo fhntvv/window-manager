@@ -1,4 +1,5 @@
 import AppKit
+import os
 import WindowManagerAdapters
 import WindowManagerDomain
 
@@ -10,6 +11,7 @@ final class AppCompositionRoot {
     private let hotkeyMatcher: HotkeyMatcher
     private var healthCheckTimer: Timer?
     private let operationQueue = DispatchQueue(label: "windowmanager.operations", qos: .userInteractive)
+    private let logger = Logger(subsystem: "com.windowmanager", category: "Lifecycle")
 
     init() throws {
         Self.waitForAccessibility()
@@ -32,6 +34,8 @@ final class AppCompositionRoot {
             screenInfo: screenInfo,
             padding: config.general.padding
         )
+
+        logger.info("WindowManager initialized — \(self.config.bindings.count, privacy: .public) bindings loaded")
     }
 
     func run() {
@@ -40,10 +44,12 @@ final class AppCompositionRoot {
         let service = windowService
         let queue = operationQueue
 
+        let log = Logger(subsystem: "com.windowmanager", category: "EventTap")
         eventTap.start { keyCode, modifiers in
             guard let action = matcher.match(keyCode: keyCode, modifiers: modifiers, bindings: bindings) else {
                 return false
             }
+            log.info("Hotkey matched: \(action.rawValue, privacy: .public)")
             queue.async {
                 service.execute(action)
             }
