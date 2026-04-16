@@ -36,6 +36,16 @@ final class AppCompositionRoot {
         )
 
         logger.info("WindowManager initialized — \(self.config.bindings.count, privacy: .public) bindings loaded")
+        Self.logCheatSheet(config.bindings, logger: logger)
+    }
+
+    private static func logCheatSheet(_ bindings: [HotkeyBinding], logger: Logger) {
+        logger.info("=== Hotkey cheat sheet ===")
+        for binding in bindings {
+            let mods = TOMLConfigAdapter.formatModifiers(binding.modifiers)
+            let key = TOMLConfigAdapter.keyName(for: binding.keyCode)
+            logger.info("  \(mods, privacy: .public)+\(key, privacy: .public) → \(binding.action.rawValue, privacy: .public)")
+        }
     }
 
     func run() {

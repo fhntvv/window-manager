@@ -17,14 +17,15 @@ echo "==> Building ${APP_NAME} ${VERSION}"
 rm -rf "${BUILD_DIR}"
 mkdir -p "${BUILD_DIR}"
 
-echo "==> Compiling universal binary (arm64 + x86_64)..."
-swift build -c release --arch arm64 --arch x86_64
+echo "==> Compiling release binary..."
+swift build -c release
 
 echo "==> Assembling .app bundle..."
 mkdir -p "${APP_BUNDLE}/Contents/MacOS"
 mkdir -p "${APP_BUNDLE}/Contents/Resources"
 
-cp "${PROJECT_ROOT}/.build/apple/Products/Release/${BINARY_NAME}" \
+BIN_PATH=$(swift build -c release --show-bin-path)
+cp "${BIN_PATH}/${BINARY_NAME}" \
    "${APP_BUNDLE}/Contents/MacOS/${BINARY_NAME}"
 
 cp "${PROJECT_ROOT}/Resources/Info.plist" \

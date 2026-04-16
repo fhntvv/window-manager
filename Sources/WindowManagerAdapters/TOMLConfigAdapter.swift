@@ -25,6 +25,19 @@ public final class TOMLConfigAdapter: ConfigPort, Sendable {
 
     public static var defaultConfig: Config { Self.makeDefaultConfig() }
 
+    public static func keyName(for keyCode: UInt16) -> String {
+        reverseKeyCodeMap[keyCode] ?? String(format: "0x%02X", keyCode)
+    }
+
+    public static func formatModifiers(_ modifiers: ModifierSet) -> String {
+        var parts: [String] = []
+        if modifiers.contains(.control) { parts.append("ctrl") }
+        if modifiers.contains(.option) { parts.append("opt") }
+        if modifiers.contains(.command) { parts.append("cmd") }
+        if modifiers.contains(.shift) { parts.append("shift") }
+        return parts.joined(separator: "+")
+    }
+
     private static func makeDefaultConfig() -> Config {
         let bindings = [
             HotkeyBinding(modifiers: [.control, .option], keyCode: 0x7B, action: .leftHalf),
@@ -117,6 +130,14 @@ private struct RawBinding: Decodable {
     let key: String
     let action: String
 }
+
+private let reverseKeyCodeMap: [UInt16: String] = {
+    var result: [UInt16: String] = [:]
+    for (name, code) in keyCodeMap where result[code] == nil {
+        result[code] = name
+    }
+    return result
+}()
 
 private let keyCodeMap: [String: UInt16] = [
     "a": 0x00, "s": 0x01, "d": 0x02, "f": 0x03,
