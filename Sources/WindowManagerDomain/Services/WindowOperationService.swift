@@ -1,5 +1,5 @@
 import Foundation
-import os
+@preconcurrency import os
 
 public final class WindowOperationService: Sendable {
     private let windowAccess: any WindowAccessPort & Sendable
