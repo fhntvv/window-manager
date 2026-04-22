@@ -1,5 +1,5 @@
 import AppKit
-import os
+@preconcurrency import os
 import WindowManagerAdapters
 import WindowManagerDomain
 

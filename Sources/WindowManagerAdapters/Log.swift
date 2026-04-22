@@ -1,4 +1,4 @@
-import os
+@preconcurrency import os
 
 enum Log {
     static let eventTap = Logger(subsystem: "com.windowmanager", category: "EventTap")

@@ -1,5 +1,5 @@
 import CoreGraphics
-import os
+@preconcurrency import os
 import WindowManagerDomain
 
 public final class CGEventTapAdapter: EventTapPort, @unchecked Sendable {
