@@ -6,85 +6,89 @@ import CoreGraphics
 @Suite("CGEventTapAdapter – handleEvent")
 struct CGEventTapHandleEventTests {
 
-    private func makeKeyDownEvent(keyCode: UInt16 = 0x00, flags: CGEventFlags = []) -> CGEvent {
-        let event = CGEvent(keyboardEventSource: nil, virtualKey: keyCode, keyDown: true)!
+    private func makeKeyDownEvent(keyCode: UInt16 = 0x00, flags: CGEventFlags = []) throws -> CGEvent {
+        let event = try #require(CGEvent(keyboardEventSource: nil, virtualKey: keyCode, keyDown: true))
         event.flags = flags
         return event
     }
 
-    // MARK: – tap-disabled recovery
-
-    @Test func tapDisabledByTimeoutPassesEventThrough() {
+    @Test func tapDisabledByTimeoutPassesEventThrough() throws {
         let adapter = CGEventTapAdapter()
-        let event = makeKeyDownEvent()
+        let event = try makeKeyDownEvent()
 
         let result = adapter.handleEvent(type: .tapDisabledByTimeout, event: event)
 
-        #expect(result != nil) // event passed through, not swallowed
+        #expect(result?.takeUnretainedValue() === event)
     }
 
-    @Test func tapDisabledByUserInputPassesEventThrough() {
+    @Test func tapDisabledByUserInputPassesEventThrough() throws {
         let adapter = CGEventTapAdapter()
-        let event = makeKeyDownEvent()
+        let event = try makeKeyDownEvent()
 
         let result = adapter.handleEvent(type: .tapDisabledByUserInput, event: event)
 
-        #expect(result != nil)
+        #expect(result?.takeUnretainedValue() === event)
     }
 
-    // MARK: – early bail without control/command
-
-    @Test func keyDownWithoutControlOrCommandPassesThrough() {
+    @Test func keyDownWithoutControlOrCommandPassesThrough() throws {
         let adapter = CGEventTapAdapter()
-        adapter.handler = { _, _ in true } // handler would match, but early bail skips it
-        let event = makeKeyDownEvent(flags: .maskShift)
+        var handlerCalled = false
+        adapter.handler = { _, _ in
+            handlerCalled = true
+            return true
+        }
+        let event = try makeKeyDownEvent(flags: .maskShift)
 
         let result = adapter.handleEvent(type: .keyDown, event: event)
 
-        #expect(result != nil) // passed through — early bail
+        #expect(result?.takeUnretainedValue() === event)
+        #expect(!handlerCalled)
     }
 
-    @Test func keyDownWithOnlyOptionPassesThrough() {
+    @Test func keyDownWithOnlyOptionPassesThrough() throws {
         let adapter = CGEventTapAdapter()
-        adapter.handler = { _, _ in true }
-        let event = makeKeyDownEvent(flags: .maskAlternate)
+        var handlerCalled = false
+        adapter.handler = { _, _ in
+            handlerCalled = true
+            return true
+        }
+        let event = try makeKeyDownEvent(flags: .maskAlternate)
 
         let result = adapter.handleEvent(type: .keyDown, event: event)
 
-        #expect(result != nil)
+        #expect(result?.takeUnretainedValue() === event)
+        #expect(!handlerCalled)
     }
 
-    // MARK: – handler dispatch
-
-    @Test func keyDownWithControlCallsHandler() {
+    @Test func keyDownWithControlCallsHandler() throws {
         let adapter = CGEventTapAdapter()
         var handlerCalled = false
         adapter.handler = { _, _ in
             handlerCalled = true
             return false
         }
-        let event = makeKeyDownEvent(flags: .maskControl)
+        let event = try makeKeyDownEvent(flags: .maskControl)
 
         _ = adapter.handleEvent(type: .keyDown, event: event)
 
         #expect(handlerCalled)
     }
 
-    @Test func keyDownWithCommandCallsHandler() {
+    @Test func keyDownWithCommandCallsHandler() throws {
         let adapter = CGEventTapAdapter()
         var handlerCalled = false
         adapter.handler = { _, _ in
             handlerCalled = true
             return false
         }
-        let event = makeKeyDownEvent(flags: .maskCommand)
+        let event = try makeKeyDownEvent(flags: .maskCommand)
 
         _ = adapter.handleEvent(type: .keyDown, event: event)
 
         #expect(handlerCalled)
     }
 
-    @Test func handlerReceivesCorrectKeyCodeAndModifiers() {
+    @Test func handlerReceivesCorrectKeyCodeAndModifiers() throws {
         let adapter = CGEventTapAdapter()
         var receivedKeyCode: UInt16?
         var receivedModifiers: ModifierSet?
@@ -93,7 +97,7 @@ struct CGEventTapHandleEventTests {
             receivedModifiers = modifiers
             return false
         }
-        let event = makeKeyDownEvent(keyCode: 0x7B, flags: CGEventFlags([.maskControl, .maskAlternate]))
+        let event = try makeKeyDownEvent(keyCode: 0x7B, flags: CGEventFlags([.maskControl, .maskAlternate]))
 
         _ = adapter.handleEvent(type: .keyDown, event: event)
 
@@ -101,48 +105,47 @@ struct CGEventTapHandleEventTests {
         #expect(receivedModifiers == [.control, .option])
     }
 
-    @Test func handlerReturningTrueSwallowsEvent() {
+    @Test func handlerReturningTrueSwallowsEvent() throws {
         let adapter = CGEventTapAdapter()
         adapter.handler = { _, _ in true }
-        let event = makeKeyDownEvent(flags: .maskControl)
+        let event = try makeKeyDownEvent(flags: .maskControl)
 
         let result = adapter.handleEvent(type: .keyDown, event: event)
 
-        #expect(result == nil) // nil = event swallowed
+        #expect(result == nil)
     }
 
-    @Test func handlerReturningFalsePassesEventThrough() {
+    @Test func handlerReturningFalsePassesEventThrough() throws {
         let adapter = CGEventTapAdapter()
         adapter.handler = { _, _ in false }
-        let event = makeKeyDownEvent(flags: .maskControl)
+        let event = try makeKeyDownEvent(flags: .maskControl)
 
         let result = adapter.handleEvent(type: .keyDown, event: event)
 
-        #expect(result != nil) // event passed through
+        #expect(result?.takeUnretainedValue() === event)
     }
 
-    // MARK: – no handler set
-
-    @Test func keyDownWithNoHandlerPassesThrough() {
+    @Test func keyDownWithNoHandlerPassesThrough() throws {
         let adapter = CGEventTapAdapter()
-        // handler is nil (no start() called)
-        let event = makeKeyDownEvent(flags: .maskControl)
+        let event = try makeKeyDownEvent(flags: .maskControl)
 
         let result = adapter.handleEvent(type: .keyDown, event: event)
 
-        #expect(result != nil)
+        #expect(result?.takeUnretainedValue() === event)
     }
 
-    // MARK: – non-keyDown event types
-
-    @Test func nonKeyDownEventPassesThrough() {
+    @Test func nonKeyDownEventPassesThrough() throws {
         let adapter = CGEventTapAdapter()
-        adapter.handler = { _, _ in true }
-        let event = makeKeyDownEvent(flags: .maskControl)
+        var handlerCalled = false
+        adapter.handler = { _, _ in
+            handlerCalled = true
+            return true
+        }
+        let event = try makeKeyDownEvent(flags: .maskControl)
 
-        // flagsChanged is not keyDown — should pass through even with handler
         let result = adapter.handleEvent(type: .flagsChanged, event: event)
 
-        #expect(result != nil)
+        #expect(result?.takeUnretainedValue() === event)
+        #expect(!handlerCalled)
     }
 }

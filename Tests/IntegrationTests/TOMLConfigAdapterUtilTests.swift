@@ -5,8 +5,6 @@ import Testing
 @Suite("TOMLConfigAdapter – utility functions")
 struct TOMLConfigAdapterUtilTests {
 
-    // MARK: – formatModifiers
-
     @Test func formatSingleControl() {
         let result = TOMLConfigAdapter.formatModifiers([.control])
         #expect(result == "ctrl")
@@ -42,8 +40,6 @@ struct TOMLConfigAdapterUtilTests {
         #expect(result == "")
     }
 
-    // MARK: – keyName
-
     @Test func keyNameForLeftArrow() {
         let result = TOMLConfigAdapter.keyName(for: 0x7B)
         #expect(result == "left")
@@ -51,9 +47,12 @@ struct TOMLConfigAdapterUtilTests {
 
     @Test func keyNameForReturnKey() {
         let result = TOMLConfigAdapter.keyName(for: 0x24)
-        // reverseKeyCodeMap picks one name for duplicate keycodes (return/enter share 0x24)
-        let valid = result == "return" || result == "enter"
-        #expect(valid)
+        #expect(result == "return")
+    }
+
+    @Test func keyNameForEscapeKey() {
+        let result = TOMLConfigAdapter.keyName(for: 0x35)
+        #expect(result == "escape")
     }
 
     @Test func keyNameForUnknownKeycodeReturnsHex() {
