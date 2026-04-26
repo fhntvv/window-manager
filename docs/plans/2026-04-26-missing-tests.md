@@ -345,7 +345,7 @@ git commit -m "test: add handleEvent routing tests for event tap adapter"
 
 `formatModifiers` and `keyName` are public static — no access level changes needed.
 
-- [ ] **Step 1: Write the test file**
+- [x] **Step 1: Write the test file**
 
 ```swift
 import Testing
@@ -418,12 +418,12 @@ struct TOMLConfigAdapterUtilTests {
 }
 ```
 
-- [ ] **Step 2: Run tests to verify they pass**
+- [x] **Step 2: Run tests to verify they pass**
 
 Run: `swift test --filter TOMLConfigAdapterUtilTests 2>&1 | tail -15`
 Expected: 11 tests passed
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add Tests/IntegrationTests/TOMLConfigAdapterUtilTests.swift
