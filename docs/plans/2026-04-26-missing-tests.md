@@ -82,7 +82,7 @@ git commit -m "test: widen CGEventTapAdapter access levels for testability"
 
 All tests are pure — no accessibility required.
 
-- [ ] **Step 1: Write the test file**
+- [x] **Step 1: Write the test file**
 
 ```swift
 import Testing
@@ -150,12 +150,12 @@ struct CGEventTapConvertFlagsTests {
 }
 ```
 
-- [ ] **Step 2: Run tests to verify they pass**
+- [x] **Step 2: Run tests to verify they pass**
 
 Run: `swift test --filter CGEventTapConvertFlagsTests 2>&1 | tail -15`
 Expected: 8 tests passed
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add Tests/IntegrationTests/CGEventTapConvertFlagsTests.swift
