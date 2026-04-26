@@ -171,7 +171,7 @@ git commit -m "test: add convertFlags tests for all modifier combinations"
 
 These tests create synthetic `CGEvent` objects and call `handleEvent` directly — no event tap, no accessibility needed. `CGEvent(keyboardEventSource: nil, virtualKey:, keyDown:)` works without permissions.
 
-- [ ] **Step 1: Write the test file**
+- [x] **Step 1: Write the test file**
 
 ```swift
 import Testing
@@ -324,12 +324,12 @@ struct CGEventTapHandleEventTests {
 }
 ```
 
-- [ ] **Step 2: Run tests to verify they pass**
+- [x] **Step 2: Run tests to verify they pass**
 
 Run: `swift test --filter CGEventTapHandleEventTests 2>&1 | tail -15`
 Expected: 11 tests passed
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add Tests/IntegrationTests/CGEventTapHandleEventTests.swift
