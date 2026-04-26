@@ -17,7 +17,7 @@
 
 Three access-level changes — no logic changes.
 
-- [ ] **Step 1: Make `handler` property internal**
+- [x] **Step 1: Make `handler` property internal**
 
 In `CGEventTapAdapter.swift`, change:
 
@@ -33,7 +33,7 @@ var handler: ((_ keyCode: UInt16, _ modifiers: ModifierSet) -> Bool)?
 
 (Swift default access is `internal`, which `@testable import` exposes to tests.)
 
-- [ ] **Step 2: Make `handleEvent` internal**
+- [x] **Step 2: Make `handleEvent` internal**
 
 Change:
 
@@ -47,7 +47,7 @@ to:
 func handleEvent(type: CGEventType, event: CGEvent) -> Unmanaged<CGEvent>? {
 ```
 
-- [ ] **Step 3: Make `convertFlags` internal**
+- [x] **Step 3: Make `convertFlags` internal**
 
 Change:
 
@@ -61,12 +61,12 @@ to:
 func convertFlags(_ flags: CGEventFlags) -> ModifierSet {
 ```
 
-- [ ] **Step 4: Verify the project builds**
+- [x] **Step 4: Verify the project builds**
 
 Run: `swift build 2>&1 | tail -5`
 Expected: `Build complete!`
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add Sources/WindowManagerAdapters/CGEventTapAdapter.swift

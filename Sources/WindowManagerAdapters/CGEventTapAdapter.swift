@@ -6,7 +6,7 @@ public final class CGEventTapAdapter: EventTapPort, @unchecked Sendable {
     private var tapPort: CFMachPort?
     private var runLoopSource: CFRunLoopSource?
     private var runLoop: CFRunLoop?
-    private var handler: ((_ keyCode: UInt16, _ modifiers: ModifierSet) -> Bool)?
+    var handler: ((_ keyCode: UInt16, _ modifiers: ModifierSet) -> Bool)?
 
     public init() {}
 
@@ -65,7 +65,7 @@ public final class CGEventTapAdapter: EventTapPort, @unchecked Sendable {
         }
     }
 
-    fileprivate func handleEvent(type: CGEventType, event: CGEvent) -> Unmanaged<CGEvent>? {
+    func handleEvent(type: CGEventType, event: CGEvent) -> Unmanaged<CGEvent>? {
         if type == .tapDisabledByTimeout || type == .tapDisabledByUserInput {
             Log.eventTap.warning("Event tap disabled by \(type == .tapDisabledByTimeout ? "timeout" : "user input", privacy: .public) — re-enabling")
             ensureEnabled()
@@ -93,7 +93,7 @@ public final class CGEventTapAdapter: EventTapPort, @unchecked Sendable {
         return Unmanaged.passUnretained(event)
     }
 
-    private func convertFlags(_ flags: CGEventFlags) -> ModifierSet {
+    func convertFlags(_ flags: CGEventFlags) -> ModifierSet {
         var result = ModifierSet()
         if flags.contains(.maskControl) { result.insert(.control) }
         if flags.contains(.maskAlternate) { result.insert(.option) }
