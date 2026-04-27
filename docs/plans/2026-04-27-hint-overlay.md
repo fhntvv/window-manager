@@ -33,7 +33,7 @@
 - Modify: `Sources/WindowManagerDomain/Services/TilingEngine.swift`
 - Modify: `Tests/DomainTests/HotkeyMatcherTests.swift`
 
-- [ ] **Step 1: Write failing test — matcher matches showHints**
+- [x] **Step 1: Write failing test — matcher matches showHints**
 
 Add to `Tests/DomainTests/HotkeyMatcherTests.swift`:
 
@@ -47,12 +47,12 @@ Add to `Tests/DomainTests/HotkeyMatcherTests.swift`:
 }
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `swift test --filter HotkeyMatcherTests/showHintsActionMatches 2>&1`
 Expected: Compilation error — `WindowAction` has no member `showHints`
 
-- [ ] **Step 3: Add `showHints` to `WindowAction`**
+- [x] **Step 3: Add `showHints` to `WindowAction`**
 
 In `Sources/WindowManagerDomain/Models/WindowAction.swift`, add `showHints` after `prevDisplay`:
 
@@ -75,7 +75,7 @@ public enum WindowAction: String, CaseIterable, Equatable, Sendable {
 }
 ```
 
-- [ ] **Step 4: Handle `showHints` in `TilingEngine`**
+- [x] **Step 4: Handle `showHints` in `TilingEngine`**
 
 The switch in `TilingEngine.computeFrame` is exhaustive — the compiler requires handling the new case. `showHints` should never reach `computeFrame` (intercepted in composition root), but we must satisfy the compiler.
 
@@ -93,12 +93,12 @@ to:
             return CGRect(origin: vf.origin, size: vf.size)
 ```
 
-- [ ] **Step 5: Run tests to verify they pass**
+- [x] **Step 5: Run tests to verify they pass**
 
 Run: `swift test --filter HotkeyMatcherTests 2>&1`
 Expected: All tests pass (including the new `showHintsActionMatches`)
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add Sources/WindowManagerDomain/Models/WindowAction.swift \
@@ -370,14 +370,14 @@ eventTap.start { keyCode, modifiers in
         return false
     }
     log.info("Hotkey matched: \(action.rawValue)")
-    if action == .showHints {
+    guard action != .showHints else {
         DispatchQueue.main.async {
             overlay.toggle(bindings: bindings)
         }
-    } else {
-        queue.async {
-            service.execute(action)
-        }
+        return true
+    }
+    queue.async {
+        service.execute(action)
     }
     return true
 }

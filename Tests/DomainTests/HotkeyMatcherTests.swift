@@ -53,4 +53,12 @@ struct HotkeyMatcherTests {
         let result = matcher.match(keyCode: 123, modifiers: [], bindings: bindings)
         #expect(result == nil)
     }
+
+    @Test func showHintsActionMatches() {
+        let bindings = [
+            HotkeyBinding(modifiers: [.control, .option], keyCode: 0x2C, action: .showHints),
+        ]
+        let result = matcher.match(keyCode: 0x2C, modifiers: [.control, .option], bindings: bindings)
+        #expect(result == .showHints)
+    }
 }
