@@ -217,7 +217,7 @@ git commit -m "feat: add slash key mapping and showHints default binding"
 **Files:**
 - Create: `Sources/WindowManagerAdapters/HintOverlayPanel.swift`
 
-- [ ] **Step 1: Create `HintOverlayPanel.swift`**
+- [x] **Step 1: Create `HintOverlayPanel.swift`**
 
 Create `Sources/WindowManagerAdapters/HintOverlayPanel.swift`:
 
@@ -320,12 +320,12 @@ Key decisions:
 - Escape key dismisses automatically (NSPanel built-in behavior)
 - Creates a fresh panel on each show (content always reflects current bindings)
 
-- [ ] **Step 2: Run full build to verify compilation**
+- [x] **Step 2: Run full build to verify compilation**
 
 Run: `swift build 2>&1`
 Expected: Build succeeds
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add Sources/WindowManagerAdapters/HintOverlayPanel.swift
