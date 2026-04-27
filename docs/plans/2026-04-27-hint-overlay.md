@@ -117,7 +117,7 @@ git commit -m "feat: add showHints to WindowAction enum"
 - Modify: `Tests/IntegrationTests/TOMLConfigAdapterUtilTests.swift`
 - Modify: `Tests/IntegrationTests/TOMLConfigAdapterTests.swift`
 
-- [ ] **Step 1: Write failing test — keyName for slash**
+- [x] **Step 1: Write failing test — keyName for slash**
 
 Add to `Tests/IntegrationTests/TOMLConfigAdapterUtilTests.swift`:
 
@@ -128,12 +128,12 @@ Add to `Tests/IntegrationTests/TOMLConfigAdapterUtilTests.swift`:
 }
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `swift test --filter TOMLConfigAdapterUtilTests/keyNameForSlash 2>&1`
 Expected: FAIL — returns `"0x2C"` (hex fallback) instead of `"/"`
 
-- [ ] **Step 3: Add `/` to key code map**
+- [x] **Step 3: Add `/` to key code map**
 
 In `Sources/WindowManagerAdapters/TOMLConfigAdapter.swift`, add to `canonicalKeyNames` array after the `(0x28, "k")` entry:
 
@@ -159,12 +159,12 @@ Also add an alias in `keyNameAliases`:
     ("slash", "/"),
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `swift test --filter TOMLConfigAdapterUtilTests/keyNameForSlash 2>&1`
 Expected: PASS
 
-- [ ] **Step 5: Add `showHints` to default config and config.toml**
+- [x] **Step 5: Add `showHints` to default config and config.toml**
 
 In `Sources/WindowManagerAdapters/TOMLConfigAdapter.swift`, in `makeDefaultConfig()`, add after the `prevDisplay` binding:
 
@@ -181,7 +181,7 @@ key = "/"
 action = "showHints"
 ```
 
-- [ ] **Step 6: Update config test expectations**
+- [x] **Step 6: Update config test expectations**
 
 In `Tests/IntegrationTests/TOMLConfigAdapterTests.swift`, update two binding count assertions from `13` to `14`:
 
@@ -195,12 +195,12 @@ In `missingFileReturnsDefaults`:
 #expect(config.bindings.count == 14)
 ```
 
-- [ ] **Step 7: Run all config tests**
+- [x] **Step 7: Run all config tests**
 
 Run: `swift test --filter "TOMLConfigAdapter" 2>&1`
 Expected: All pass
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 git add Sources/WindowManagerAdapters/TOMLConfigAdapter.swift \
