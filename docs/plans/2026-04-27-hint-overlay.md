@@ -404,13 +404,13 @@ git commit -m "feat: wire hint overlay toggle in composition root"
 
 ### Task 5: Smoke test
 
-- [ ] **Step 1: Build and run**
+- [x] **Step 1: Build and run**
 
 ```bash
 swift build && .build/debug/windowmanager --debug
 ```
 
-- [ ] **Step 2: Verify**
+- [x] **Step 2: Verify**
 
 1. Press `ctrl+option+/` — overlay should appear centered on screen with all bindings listed
 2. Press `ctrl+option+/` again — overlay should dismiss
