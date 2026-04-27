@@ -1,5 +1,4 @@
 import Foundation
-@preconcurrency import os
 import TOMLKit
 import WindowManagerDomain
 
@@ -13,13 +12,13 @@ public final class TOMLConfigAdapter: ConfigPort, Sendable {
 
     public func loadConfig() throws -> Config {
         guard FileManager.default.fileExists(atPath: configPath) else {
-            Log.config.info("Config not found at \(self.configPath, privacy: .public) — using defaults")
+            Log.config.info("Config not found at \(self.configPath) — using defaults")
             return Self.defaultConfig
         }
         let contents = try String(contentsOfFile: configPath, encoding: .utf8)
         let raw = try TOMLDecoder().decode(RawConfig.self, from: contents)
         let config = convertConfig(raw)
-        Log.config.info("Loaded \(config.bindings.count, privacy: .public) bindings from \(self.configPath, privacy: .public)")
+        Log.config.info("Loaded \(config.bindings.count) bindings from \(self.configPath)")
         return config
     }
 
@@ -68,7 +67,7 @@ public final class TOMLConfigAdapter: ConfigPort, Sendable {
                   let keyCode = keyNameToCode(rawBinding.key),
                   let action = WindowAction(rawValue: rawBinding.action)
             else {
-                Log.config.warning("Skipping invalid binding: modifiers=\(rawBinding.modifiers, privacy: .public), key=\(rawBinding.key, privacy: .public), action=\(rawBinding.action, privacy: .public)")
+                Log.config.warning("Skipping invalid binding: modifiers=\(rawBinding.modifiers), key=\(rawBinding.key), action=\(rawBinding.action)")
                 return nil
             }
             return HotkeyBinding(modifiers: modifiers, keyCode: keyCode, action: action)

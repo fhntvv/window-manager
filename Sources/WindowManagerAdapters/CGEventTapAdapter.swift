@@ -1,5 +1,4 @@
 import CoreGraphics
-@preconcurrency import os
 import WindowManagerDomain
 
 public final class CGEventTapAdapter: EventTapPort, @unchecked Sendable {
@@ -67,7 +66,7 @@ public final class CGEventTapAdapter: EventTapPort, @unchecked Sendable {
 
     func handleEvent(type: CGEventType, event: CGEvent) -> Unmanaged<CGEvent>? {
         if type == .tapDisabledByTimeout || type == .tapDisabledByUserInput {
-            Log.eventTap.warning("Event tap disabled by \(type == .tapDisabledByTimeout ? "timeout" : "user input", privacy: .public) — re-enabling")
+            Log.eventTap.warning("Event tap disabled by \(type == .tapDisabledByTimeout ? "timeout" : "user input") — re-enabling")
             ensureEnabled()
             return Unmanaged.passUnretained(event)
         }

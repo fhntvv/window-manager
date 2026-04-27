@@ -1,5 +1,4 @@
 import AppKit
-@preconcurrency import os
 import WindowManagerAdapters
 import WindowManagerDomain
 
@@ -11,7 +10,7 @@ final class AppCompositionRoot {
     private let hotkeyMatcher: HotkeyMatcher
     private var healthCheckTimer: Timer?
     private let operationQueue = DispatchQueue(label: "windowmanager.operations", qos: .userInteractive)
-    private let logger = Logger(subsystem: "com.windowmanager", category: "Lifecycle")
+    private let logger = DebugLogger(subsystem: "com.windowmanager", category: "Lifecycle")
 
     init() throws {
         Self.waitForAccessibility()
@@ -35,16 +34,16 @@ final class AppCompositionRoot {
             padding: config.general.padding
         )
 
-        logger.info("WindowManager initialized — \(self.config.bindings.count, privacy: .public) bindings loaded")
+        logger.info("WindowManager initialized — \(self.config.bindings.count) bindings loaded")
         Self.logCheatSheet(config.bindings, logger: logger)
     }
 
-    private static func logCheatSheet(_ bindings: [HotkeyBinding], logger: Logger) {
+    private static func logCheatSheet(_ bindings: [HotkeyBinding], logger: DebugLogger) {
         logger.info("=== Hotkey cheat sheet ===")
         for binding in bindings {
             let mods = TOMLConfigAdapter.formatModifiers(binding.modifiers)
             let key = TOMLConfigAdapter.keyName(for: binding.keyCode)
-            logger.info("  \(mods, privacy: .public)+\(key, privacy: .public) → \(binding.action.rawValue, privacy: .public)")
+            logger.info("  \(mods)+\(key) → \(binding.action.rawValue)")
         }
     }
 
@@ -54,12 +53,12 @@ final class AppCompositionRoot {
         let service = windowService
         let queue = operationQueue
 
-        let log = Logger(subsystem: "com.windowmanager", category: "EventTap")
+        let log = DebugLogger(subsystem: "com.windowmanager", category: "EventTap")
         eventTap.start { keyCode, modifiers in
             guard let action = matcher.match(keyCode: keyCode, modifiers: modifiers, bindings: bindings) else {
                 return false
             }
-            log.info("Hotkey matched: \(action.rawValue, privacy: .public)")
+            log.info("Hotkey matched: \(action.rawValue)")
             queue.async {
                 service.execute(action)
             }
