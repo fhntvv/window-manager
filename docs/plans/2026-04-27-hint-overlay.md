@@ -339,7 +339,7 @@ git commit -m "feat: add HintOverlayPanel for keybinding cheat sheet"
 **Files:**
 - Modify: `Sources/windowmanager/AppCompositionRoot.swift`
 
-- [ ] **Step 1: Add `HintOverlayPanel` and wire `.showHints` in event tap handler**
+- [x] **Step 1: Add `HintOverlayPanel` and wire `.showHints` in event tap handler**
 
 In `Sources/windowmanager/AppCompositionRoot.swift`:
 
@@ -383,17 +383,17 @@ eventTap.start { keyCode, modifiers in
 }
 ```
 
-- [ ] **Step 2: Run full build**
+- [x] **Step 2: Run full build**
 
 Run: `swift build 2>&1`
 Expected: Build succeeds
 
-- [ ] **Step 3: Run full test suite**
+- [x] **Step 3: Run full test suite**
 
 Run: `swift test 2>&1`
 Expected: All tests pass
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add Sources/windowmanager/AppCompositionRoot.swift

@@ -8,6 +8,7 @@ final class AppCompositionRoot {
     private let windowService: WindowOperationService
     private let config: Config
     private let hotkeyMatcher: HotkeyMatcher
+    private let hintOverlay: HintOverlayPanel
     private var healthCheckTimer: Timer?
     private let operationQueue = DispatchQueue(label: "windowmanager.operations", qos: .userInteractive)
     private let logger = DebugLogger(subsystem: "com.windowmanager", category: "Lifecycle")
@@ -33,6 +34,7 @@ final class AppCompositionRoot {
             screenInfo: screenInfo,
             padding: config.general.padding
         )
+        self.hintOverlay = HintOverlayPanel()
 
         logger.info("WindowManager initialized — \(self.config.bindings.count) bindings loaded")
         Self.logCheatSheet(config.bindings, logger: logger)
@@ -52,6 +54,7 @@ final class AppCompositionRoot {
         let matcher = hotkeyMatcher
         let service = windowService
         let queue = operationQueue
+        let overlay = hintOverlay
 
         let log = DebugLogger(subsystem: "com.windowmanager", category: "EventTap")
         eventTap.start { keyCode, modifiers in
@@ -59,6 +62,12 @@ final class AppCompositionRoot {
                 return false
             }
             log.info("Hotkey matched: \(action.rawValue)")
+            guard action != .showHints else {
+                DispatchQueue.main.async {
+                    overlay.toggle(bindings: bindings)
+                }
+                return true
+            }
             queue.async {
                 service.execute(action)
             }
