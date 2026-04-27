@@ -1,12 +1,11 @@
 import Foundation
-@preconcurrency import os
 
 public final class WindowOperationService: Sendable {
     private let windowAccess: any WindowAccessPort & Sendable
     private let screenInfo: any ScreenInfoPort & Sendable
     private let tilingEngine: TilingEngine
     private let padding: CGFloat
-    private let logger = Logger(subsystem: "com.windowmanager", category: "WindowOps")
+    private let logger = DebugLogger(subsystem: "com.windowmanager", category: "WindowOps")
 
     public init(
         windowAccess: any WindowAccessPort & Sendable,
@@ -22,11 +21,11 @@ public final class WindowOperationService: Sendable {
 
     public func execute(_ action: WindowAction) {
         guard let window = windowAccess.getFocusedWindow() else {
-            logger.debug("No focused window — skipping \(action.rawValue, privacy: .public)")
+            logger.debug("No focused window — skipping \(action.rawValue)")
             return
         }
         guard !window.isFullscreen else {
-            logger.debug("Window is fullscreen — skipping \(action.rawValue, privacy: .public)")
+            logger.debug("Window is fullscreen — skipping \(action.rawValue)")
             return
         }
 
@@ -54,7 +53,7 @@ public final class WindowOperationService: Sendable {
             padding: padding
         )
         let ok = windowAccess.setWindowFrame(window.ref, position: frame.origin, size: frame.size)
-        logger.info("\(action.rawValue, privacy: .public) → frame(\(frame.origin.x, privacy: .public), \(frame.origin.y, privacy: .public), \(frame.size.width, privacy: .public), \(frame.size.height, privacy: .public)) — \(ok ? "ok" : "failed", privacy: .public)")
+        logger.info("\(action.rawValue) → frame(\(frame.origin.x), \(frame.origin.y), \(frame.size.width), \(frame.size.height)) — \(ok ? "ok" : "failed")")
     }
 
     private func executeDisplayMove(window: WindowInfo, direction: Int) {
@@ -82,6 +81,6 @@ public final class WindowOperationService: Sendable {
         _ = windowAccess.setWindowFrame(window.ref, position: targetFrame.origin, size: shrunkSize)
         let ok = windowAccess.setWindowFrame(window.ref, position: targetFrame.origin, size: targetFrame.size)
         let actionName = direction > 0 ? "nextDisplay" : "prevDisplay"
-        logger.info("\(actionName, privacy: .public) → screen \(nextIndex, privacy: .public), frame(\(targetFrame.origin.x, privacy: .public), \(targetFrame.origin.y, privacy: .public), \(targetFrame.size.width, privacy: .public), \(targetFrame.size.height, privacy: .public)) — \(ok ? "ok" : "failed", privacy: .public)")
+        logger.info("\(actionName) → screen \(nextIndex), frame(\(targetFrame.origin.x), \(targetFrame.origin.y), \(targetFrame.size.width), \(targetFrame.size.height)) — \(ok ? "ok" : "failed")")
     }
 }

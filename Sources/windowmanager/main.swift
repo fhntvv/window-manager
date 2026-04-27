@@ -1,5 +1,7 @@
 import Foundation
-@preconcurrency import os
+import WindowManagerDomain
+
+DebugLogger.isDebugMode = CommandLine.arguments.contains("--debug")
 
 do {
     try MainActor.assumeIsolated {
@@ -7,7 +9,7 @@ do {
         root.run()
     }
 } catch {
-    let logger = Logger(subsystem: "com.windowmanager", category: "Lifecycle")
-    logger.fault("Failed to start: \(error, privacy: .public)")
+    let logger = DebugLogger(subsystem: "com.windowmanager", category: "Lifecycle")
+    logger.fault("Failed to start: \(error)")
     exit(1)
 }
