@@ -82,6 +82,11 @@ public final class CGEventTapAdapter: EventTapPort, @unchecked Sendable {
             return Unmanaged.passUnretained(event)
         }
 
+        // Drop auto-repeat: hotkey actions are discrete; repeats would flap toggles like showHints.
+        if event.getIntegerValueField(.keyboardEventAutorepeat) != 0 {
+            return Unmanaged.passUnretained(event)
+        }
+
         let keyCode = UInt16(event.getIntegerValueField(.keyboardEventKeycode))
         let modifiers = convertFlags(rawFlags)
 
