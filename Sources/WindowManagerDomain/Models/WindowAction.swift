@@ -12,4 +12,5 @@ public enum WindowAction: String, CaseIterable, Equatable, Sendable {
     case center
     case nextDisplay
     case prevDisplay
+    case showHints
 }

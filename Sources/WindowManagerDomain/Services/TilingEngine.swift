@@ -83,7 +83,7 @@ public struct TilingEngine: Sendable {
                 size: currentWindow.size
             )
 
-        case .nextDisplay, .prevDisplay:
+        case .nextDisplay, .prevDisplay, .showHints:
             return CGRect(origin: vf.origin, size: vf.size)
         }
     }

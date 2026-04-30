@@ -30,6 +30,8 @@ public final class WindowOperationService: Sendable {
         }
 
         switch action {
+        case .showHints:
+            return
         case .nextDisplay:
             executeDisplayMove(window: window, direction: 1)
         case .prevDisplay:

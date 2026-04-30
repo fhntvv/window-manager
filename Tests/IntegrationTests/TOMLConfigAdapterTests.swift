@@ -20,7 +20,7 @@ struct TOMLConfigAdapterTests {
         let config = try adapter.loadConfig()
 
         #expect(!config.bindings.isEmpty)
-        #expect(config.bindings.count == 13)
+        #expect(config.bindings.count == 14)
 
         let leftHalf = config.bindings.first { $0.action == .leftHalf }
         #expect(leftHalf != nil)
@@ -31,7 +31,7 @@ struct TOMLConfigAdapterTests {
     @Test func missingFileReturnsDefaults() throws {
         let adapter = TOMLConfigAdapter(configPath: "/nonexistent/path/config.toml")
         let config = try adapter.loadConfig()
-        #expect(config.bindings.count == 13)
+        #expect(config.bindings.count == 14)
     }
 
     @Test func configGeneralSettings() throws {

@@ -64,4 +64,9 @@ struct TOMLConfigAdapterUtilTests {
         let result = TOMLConfigAdapter.keyName(for: 0x00)
         #expect(result == "a")
     }
+
+    @Test func keyNameForSlash() {
+        let result = TOMLConfigAdapter.keyName(for: 0x2C)
+        #expect(result == "/")
+    }
 }

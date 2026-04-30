@@ -52,6 +52,7 @@ public final class TOMLConfigAdapter: ConfigPort, Sendable {
             HotkeyBinding(modifiers: [.control, .option], keyCode: 0x08, action: .center),
             HotkeyBinding(modifiers: [.control, .option, .command], keyCode: 0x7C, action: .nextDisplay),
             HotkeyBinding(modifiers: [.control, .option, .command], keyCode: 0x7B, action: .prevDisplay),
+            HotkeyBinding(modifiers: [.control, .option], keyCode: 0x2C, action: .showHints),
         ]
         return Config(bindings: bindings, general: GeneralConfig())
     }
@@ -139,7 +140,7 @@ private let canonicalKeyNames: [(UInt16, String)] = [
     (0x15, "4"), (0x16, "6"), (0x17, "5"), (0x19, "9"),
     (0x1A, "7"), (0x1C, "8"), (0x1D, "0"), (0x1F, "o"),
     (0x20, "u"), (0x22, "i"), (0x23, "p"), (0x25, "l"),
-    (0x26, "j"), (0x28, "k"), (0x2D, "n"), (0x2E, "m"),
+    (0x26, "j"), (0x28, "k"), (0x2C, "/"), (0x2D, "n"), (0x2E, "m"),
 
     (0x24, "return"), (0x30, "tab"),
     (0x31, "space"), (0x33, "delete"), (0x35, "escape"),
@@ -154,6 +155,7 @@ private let canonicalKeyNames: [(UInt16, String)] = [
 private let keyNameAliases: [(String, String)] = [
     ("enter", "return"),
     ("esc", "escape"),
+    ("slash", "/"),
 ]
 
 private let reverseKeyCodeMap: [UInt16: String] =
