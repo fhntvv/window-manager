@@ -13,28 +13,55 @@ public final class AXWindowAdapter: WindowAccessPort, @unchecked Sendable {
     }
 
     public func getFocusedWindow() -> WindowInfo? {
-        let systemWide = AXUIElementCreateSystemWide()
-
-        var focusedApp: CFTypeRef?
-        guard AXUIElementCopyAttributeValue(
-            systemWide,
-            kAXFocusedApplicationAttribute as CFString,
-            &focusedApp
-        ) == .success else {
+        // Use NSWorkspace as source of truth for foreground app — it works even
+        // when Chrome's AX tree is lazy-uninitialized and the systemwide AX
+        // query returns kAXErrorNoValue.
+        guard let frontApp = NSWorkspace.shared.frontmostApplication else {
+            Log.windowOps.debug("getFocusedWindow: NSWorkspace has no frontmost application")
             return nil
         }
-
-        let appElement = focusedApp as! AXUIElement
+        let pid = frontApp.processIdentifier
+        let bundle = frontApp.bundleIdentifier ?? "?"
+        let name = frontApp.localizedName ?? "?"
+        let appElement = AXUIElementCreateApplication(pid)
+        AXUIElementSetMessagingTimeout(appElement, 0.5)
 
         var focusedWindow: CFTypeRef?
-        guard AXUIElementCopyAttributeValue(
+        var result = AXUIElementCopyAttributeValue(
             appElement,
             kAXFocusedWindowAttribute as CFString,
             &focusedWindow
-        ) == .success else {
+        )
+
+        var wokeUp = false
+        if result != .success {
+            // Chrome / Chromium-based apps lazy-initialize their AX tree.
+            // Set both wake-up flags and give Chromium time to populate.
+            AXUIElementSetAttributeValue(
+                appElement,
+                "AXManualAccessibility" as CFString,
+                kCFBooleanTrue
+            )
+            AXUIElementSetAttributeValue(
+                appElement,
+                "AXEnhancedUserInterface" as CFString,
+                kCFBooleanTrue
+            )
+            usleep(100_000)
+            result = AXUIElementCopyAttributeValue(
+                appElement,
+                kAXFocusedWindowAttribute as CFString,
+                &focusedWindow
+            )
+            wokeUp = true
+        }
+
+        guard result == .success, let focusedWindow else {
+            Log.windowOps.debug("getFocusedWindow failed pid=\(pid) bundle=\(bundle) name=\(name) wokeUp=\(wokeUp) AXError=\(result.rawValue)")
             return nil
         }
 
+        Log.windowOps.debug("getFocusedWindow ok pid=\(pid) bundle=\(bundle) name=\(name) wokeUp=\(wokeUp)")
         let windowElement = focusedWindow as! AXUIElement
         return windowInfo(from: windowElement)
     }
