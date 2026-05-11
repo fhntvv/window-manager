@@ -88,13 +88,20 @@ final class AppCompositionRoot {
     }
 
     private static nonisolated func waitForAccessibility() {
+        let logger = DebugLogger(subsystem: "com.windowmanager", category: "Lifecycle")
         let options = ["AXTrustedCheckOptionPrompt": true] as CFDictionary
         if AXIsProcessTrustedWithOptions(options) {
             return
         }
 
+        var iteration = 0
         while !AXIsProcessTrusted() {
+            if iteration % 5 == 0 {
+                logger.warning("Waiting for Accessibility permission — grant in System Settings → Privacy & Security → Accessibility, then ensure the app is launched via Launch Services (open / Finder / LaunchAgent), not directly from a terminal")
+            }
+            iteration += 1
             Thread.sleep(forTimeInterval: 1.0)
         }
+        logger.info("Accessibility permission granted — continuing startup")
     }
 }
