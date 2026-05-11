@@ -74,7 +74,10 @@ public final class WindowOperationService: Sendable {
             padding: padding
         )
 
-        // Triple-write: shrink → move → resize
+        // Triple-write: shrink → move → resize.
+        // TODO: with the adapter-level pos→size→pos sequence, this may be
+        // reducible to a single setWindowFrame — keep the shrink step as
+        // long as cross-display origin clamping is a concern.
         let shrunkSize = CGSize(
             width: min(window.size.width, targetScreen.visibleFrame.size.width),
             height: min(window.size.height, targetScreen.visibleFrame.size.height)

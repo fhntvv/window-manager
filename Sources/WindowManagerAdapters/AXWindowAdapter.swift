@@ -46,33 +46,70 @@ public final class AXWindowAdapter: WindowAccessPort, @unchecked Sendable {
 
         guard let element else { return false }
 
+        let start = DispatchTime.now()
+
+        var pid: pid_t = 0
+        AXUIElementGetPid(element, &pid)
+        let appEl = AXUIElementCreateApplication(pid)
+
+        let wasZoomed = getBoolAttribute(element, "AXZoomed")
+        if wasZoomed {
+            setBoolAttribute(element, "AXZoomed", false)
+        }
+
+        let wasEUI = getBoolAttribute(appEl, "AXEnhancedUserInterface")
+        if wasEUI {
+            setBoolAttribute(appEl, "AXEnhancedUserInterface", false)
+            // Chromium rebuilds part of its AX tree on EUI flip; give it a tick.
+            usleep(2_000)
+        }
+        // If the app process dies between here and the defer, EUI stays false
+        // for the dead process — acceptable.
+        defer {
+            if wasEUI {
+                setBoolAttribute(appEl, "AXEnhancedUserInterface", true)
+            }
+        }
+
+        var attempts = 0
+        var ok = false
         for attempt in 0..<3 {
             if attempt > 0 {
                 usleep(50_000)
             }
+            attempts = attempt + 1
 
-            var pos = position
-            guard let posValue = AXValueCreate(.cgPoint, &pos) else { continue }
-            let posResult = AXUIElementSetAttributeValue(
-                element,
-                kAXPositionAttribute as CFString,
-                posValue
-            )
+            let r1 = writePosition(element, position)
+            let r2 = writeSize(element, size)
+            let r3 = writePosition(element, position)
 
-            var sz = size
-            guard let sizeValue = AXValueCreate(.cgSize, &sz) else { continue }
-            let sizeResult = AXUIElementSetAttributeValue(
-                element,
-                kAXSizeAttribute as CFString,
-                sizeValue
-            )
-
-            if posResult == .success && sizeResult == .success {
-                return true
+            if r1 == .success && r2 == .success && r3 == .success {
+                ok = true
+                break
             }
         }
 
-        return false
+        let elapsedMs = Double(DispatchTime.now().uptimeNanoseconds - start.uptimeNanoseconds) / 1_000_000
+        Log.windowOps.debug(
+            "setWindowFrame pid=\(pid) wasEUI=\(wasEUI) wasZoomed=\(wasZoomed) attempts=\(attempts) result=\(ok ? "ok" : "failed") elapsedMs=\(String(format: "%.1f", elapsedMs))"
+        )
+        return ok
+    }
+
+    private func writePosition(_ element: AXUIElement, _ position: CGPoint) -> AXError {
+        var pos = position
+        guard let value = AXValueCreate(.cgPoint, &pos) else { return .failure }
+        return AXUIElementSetAttributeValue(element, kAXPositionAttribute as CFString, value)
+    }
+
+    private func writeSize(_ element: AXUIElement, _ size: CGSize) -> AXError {
+        var sz = size
+        guard let value = AXValueCreate(.cgSize, &sz) else { return .failure }
+        return AXUIElementSetAttributeValue(element, kAXSizeAttribute as CFString, value)
+    }
+
+    private func setBoolAttribute(_ element: AXUIElement, _ attribute: String, _ value: Bool) {
+        AXUIElementSetAttributeValue(element, attribute as CFString, value as CFBoolean)
     }
 
     public func getWindowInfo(_ window: WindowManagerDomain.WindowRef) -> WindowInfo? {
