@@ -14,6 +14,8 @@ final class AppCompositionRoot {
     private let logger = DebugLogger(subsystem: "com.windowmanager", category: "Lifecycle")
 
     init() throws {
+        Self.logStartupIdentity(logger: logger)
+        Self.enforceSingleton(logger: logger)
         Self.waitForAccessibility()
 
         let configAdapter = TOMLConfigAdapter()
@@ -38,6 +40,36 @@ final class AppCompositionRoot {
 
         logger.info("WindowManager initialized — \(self.config.bindings.count) bindings loaded")
         Self.logCheatSheet(config.bindings, logger: logger)
+    }
+
+    private static nonisolated func logStartupIdentity(logger: DebugLogger) {
+        let version = (Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String) ?? "dev"
+        let executable = Bundle.main.executablePath ?? CommandLine.arguments.first ?? "?"
+        let bundle = Bundle.main.bundlePath
+        logger.info("startup version=\(version) pid=\(getpid()) executable=\(executable) bundle=\(bundle)")
+    }
+
+    private static nonisolated func enforceSingleton(logger: DebugLogger) {
+        let fm = FileManager.default
+        let supportDir = fm.homeDirectoryForCurrentUser
+            .appendingPathComponent("Library/Application Support/com.windowmanager", isDirectory: true)
+        let pidFile = supportDir.appendingPathComponent("instance.pid")
+
+        try? fm.createDirectory(at: supportDir, withIntermediateDirectories: true)
+
+        if let existing = try? String(contentsOf: pidFile, encoding: .utf8),
+           let otherPid = pid_t(existing.trimmingCharacters(in: .whitespacesAndNewlines)),
+           otherPid > 0,
+           kill(otherPid, 0) == 0 {
+            logger.fault("another windowmanager is already running (pid=\(otherPid)) — exiting")
+            fputs("fatal: another windowmanager is already running (pid=\(otherPid))\n", stderr)
+            exit(1)
+        }
+
+        try? "\(getpid())".write(to: pidFile, atomically: true, encoding: .utf8)
+        atexit_b {
+            try? FileManager.default.removeItem(at: pidFile)
+        }
     }
 
     private static func logCheatSheet(_ bindings: [HotkeyBinding], logger: DebugLogger) {

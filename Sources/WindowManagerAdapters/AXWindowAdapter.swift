@@ -49,16 +49,25 @@ public final class AXWindowAdapter: WindowAccessPort, @unchecked Sendable {
         let start = DispatchTime.now()
 
         var pid: pid_t = 0
-        AXUIElementGetPid(element, &pid)
-        let appEl = AXUIElementCreateApplication(pid)
+        let pidStatus = AXUIElementGetPid(element, &pid)
+        let appEl: AXUIElement? = (pidStatus == .success && pid > 0)
+            ? AXUIElementCreateApplication(pid)
+            : nil
+
+        // Bound AX message timeouts so a wedged target can't tie up this queue
+        // (or hold the deferred EUI=true write hostage) for the 6s default.
+        AXUIElementSetMessagingTimeout(element, 0.5)
+        if let appEl {
+            AXUIElementSetMessagingTimeout(appEl, 0.5)
+        }
 
         let wasZoomed = getBoolAttribute(element, "AXZoomed")
         if wasZoomed {
             setBoolAttribute(element, "AXZoomed", false)
         }
 
-        let wasEUI = getBoolAttribute(appEl, "AXEnhancedUserInterface")
-        if wasEUI {
+        let wasEUI = appEl.map { getBoolAttribute($0, "AXEnhancedUserInterface") } ?? false
+        if wasEUI, let appEl {
             setBoolAttribute(appEl, "AXEnhancedUserInterface", false)
             // Chromium rebuilds part of its AX tree on EUI flip; give it a tick.
             usleep(2_000)
@@ -66,7 +75,7 @@ public final class AXWindowAdapter: WindowAccessPort, @unchecked Sendable {
         // If the app process dies between here and the defer, EUI stays false
         // for the dead process — acceptable.
         defer {
-            if wasEUI {
+            if wasEUI, let appEl {
                 setBoolAttribute(appEl, "AXEnhancedUserInterface", true)
             }
         }
@@ -109,7 +118,8 @@ public final class AXWindowAdapter: WindowAccessPort, @unchecked Sendable {
     }
 
     private func setBoolAttribute(_ element: AXUIElement, _ attribute: String, _ value: Bool) {
-        AXUIElementSetAttributeValue(element, attribute as CFString, value as CFBoolean)
+        let cfValue: CFBoolean = value ? kCFBooleanTrue : kCFBooleanFalse
+        AXUIElementSetAttributeValue(element, attribute as CFString, cfValue)
     }
 
     public func getWindowInfo(_ window: WindowManagerDomain.WindowRef) -> WindowInfo? {
