@@ -1,22 +1,26 @@
 import AppKit
+import ApplicationServices
 import WindowManagerAdapters
 import WindowManagerDomain
 
 @MainActor
 final class AppCompositionRoot {
-    private let eventTap: CGEventTapAdapter
-    private let windowService: WindowOperationService
     private let config: Config
     private let hotkeyMatcher: HotkeyMatcher
     private let hintOverlay: HintOverlayPanel
-    private var healthCheckTimer: Timer?
+    private let screenInfo: NSScreenAdapter
     private let operationQueue = DispatchQueue(label: "windowmanager.operations", qos: .userInteractive)
     private let logger = DebugLogger(subsystem: "com.windowmanager", category: "Lifecycle")
+
+    private var eventTap: CGEventTapAdapter?
+    private var windowService: WindowOperationService?
+    private var healthCheckTimer: Timer?
+    private var tccWatcher: DispatchSourceFileSystemObject?
+    private var trustPollTimer: Timer?
 
     init() throws {
         Self.logStartupIdentity(logger: logger)
         Self.enforceSingleton(logger: logger)
-        Self.waitForAccessibility()
 
         let configAdapter = TOMLConfigAdapter()
         do {
@@ -26,20 +30,114 @@ final class AppCompositionRoot {
             self.config = TOMLConfigAdapter.defaultConfig
         }
 
-        let screenInfo = NSScreenAdapter()
-        let windowAccess = AXWindowAdapter(screenInfo: screenInfo)
-        self.eventTap = CGEventTapAdapter()
+        self.screenInfo = NSScreenAdapter()
         self.hotkeyMatcher = HotkeyMatcher()
-
-        self.windowService = WindowOperationService(
-            windowAccess: windowAccess,
-            screenInfo: screenInfo,
-            padding: config.general.padding
-        )
         self.hintOverlay = HintOverlayPanel()
 
         logger.info("WindowManager initialized — \(self.config.bindings.count) bindings loaded")
         Self.logCheatSheet(config.bindings, logger: logger)
+    }
+
+    func run() {
+        let app = NSApplication.shared
+        app.setActivationPolicy(.accessory)
+        startWhenTrusted()
+        app.run()
+    }
+
+    private func startWhenTrusted() {
+        let promptOptions = ["AXTrustedCheckOptionPrompt": true] as CFDictionary
+        if AXIsProcessTrustedWithOptions(promptOptions) {
+            startTrustedServices()
+            return
+        }
+
+        logger.info("waiting for Accessibility permission — will resume automatically when granted")
+        installTCCWatcher()
+        installTrustPollTimer()
+    }
+
+    private func installTCCWatcher() {
+        let tccDir = FileManager.default.homeDirectoryForCurrentUser
+            .appendingPathComponent("Library/Application Support/com.apple.TCC", isDirectory: true)
+        let fd = open(tccDir.path, O_EVTONLY)
+        guard fd >= 0 else {
+            logger.warning("could not open TCC dir for watching (errno=\(errno)) — falling back to timer-only")
+            return
+        }
+        let source = DispatchSource.makeFileSystemObjectSource(
+            fileDescriptor: fd,
+            eventMask: .write,
+            queue: .main
+        )
+        source.setEventHandler { [weak self] in
+            MainActor.assumeIsolated { self?.checkAndStartIfTrusted() }
+        }
+        source.setCancelHandler { close(fd) }
+        source.resume()
+        self.tccWatcher = source
+    }
+
+    private func installTrustPollTimer() {
+        trustPollTimer = Timer.scheduledTimer(withTimeInterval: 2.0, repeats: true) { [weak self] _ in
+            MainActor.assumeIsolated { self?.checkAndStartIfTrusted() }
+        }
+    }
+
+    private func checkAndStartIfTrusted() {
+        guard AXIsProcessTrusted() else { return }
+        tccWatcher?.cancel()
+        tccWatcher = nil
+        trustPollTimer?.invalidate()
+        trustPollTimer = nil
+        startTrustedServices()
+    }
+
+    private func startTrustedServices() {
+        guard eventTap == nil else { return }
+
+        let windowAccess = AXWindowAdapter(screenInfo: screenInfo)
+        let service = WindowOperationService(
+            windowAccess: windowAccess,
+            screenInfo: screenInfo,
+            padding: config.general.padding
+        )
+        let tap = CGEventTapAdapter()
+
+        self.windowService = service
+        self.eventTap = tap
+
+        let bindings = config.bindings
+        let matcher = hotkeyMatcher
+        let queue = operationQueue
+        let overlay = hintOverlay
+        let log = DebugLogger(subsystem: "com.windowmanager", category: "EventTap")
+
+        tap.start { keyCode, modifiers in
+            guard let action = matcher.match(keyCode: keyCode, modifiers: modifiers, bindings: bindings) else {
+                return false
+            }
+            log.info("Hotkey matched: \(action.rawValue)")
+            guard action != .showHints else {
+                DispatchQueue.main.async {
+                    overlay.toggle(bindings: bindings)
+                }
+                return true
+            }
+            queue.async {
+                service.execute(action)
+            }
+            return true
+        }
+
+        startHealthCheckTimer()
+        logger.info("Accessibility granted — services started")
+    }
+
+    private func startHealthCheckTimer() {
+        healthCheckTimer = Timer.scheduledTimer(withTimeInterval: 5.0, repeats: true) { [weak self] _ in
+            MainActor.assumeIsolated { self?.eventTap?.ensureEnabled() }
+        }
     }
 
     private static nonisolated func logStartupIdentity(logger: DebugLogger) {
@@ -79,61 +177,5 @@ final class AppCompositionRoot {
             let key = TOMLConfigAdapter.keyName(for: binding.keyCode)
             logger.info("  \(mods)+\(key) → \(binding.action.rawValue)")
         }
-    }
-
-    func run() {
-        let bindings = config.bindings
-        let matcher = hotkeyMatcher
-        let service = windowService
-        let queue = operationQueue
-        let overlay = hintOverlay
-
-        let log = DebugLogger(subsystem: "com.windowmanager", category: "EventTap")
-        eventTap.start { keyCode, modifiers in
-            guard let action = matcher.match(keyCode: keyCode, modifiers: modifiers, bindings: bindings) else {
-                return false
-            }
-            log.info("Hotkey matched: \(action.rawValue)")
-            guard action != .showHints else {
-                DispatchQueue.main.async {
-                    overlay.toggle(bindings: bindings)
-                }
-                return true
-            }
-            queue.async {
-                service.execute(action)
-            }
-            return true
-        }
-
-        startHealthCheckTimer()
-
-        let app = NSApplication.shared
-        app.setActivationPolicy(.accessory)
-        app.run()
-    }
-
-    private func startHealthCheckTimer() {
-        healthCheckTimer = Timer.scheduledTimer(withTimeInterval: 5.0, repeats: true) { [weak self] _ in
-            self?.eventTap.ensureEnabled()
-        }
-    }
-
-    private static nonisolated func waitForAccessibility() {
-        let logger = DebugLogger(subsystem: "com.windowmanager", category: "Lifecycle")
-        let options = ["AXTrustedCheckOptionPrompt": true] as CFDictionary
-        if AXIsProcessTrustedWithOptions(options) {
-            return
-        }
-
-        var iteration = 0
-        while !AXIsProcessTrusted() {
-            if iteration % 5 == 0 {
-                logger.warning("Waiting for Accessibility permission — grant in System Settings → Privacy & Security → Accessibility, then ensure the app is launched via Launch Services (open / Finder / LaunchAgent), not directly from a terminal")
-            }
-            iteration += 1
-            Thread.sleep(forTimeInterval: 1.0)
-        }
-        logger.info("Accessibility permission granted — continuing startup")
     }
 }
