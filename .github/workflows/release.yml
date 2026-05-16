@@ -21,9 +21,33 @@ jobs:
         id: version
         run: echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
 
-      - name: Build unsigned DMG
+      - name: Import signing certificate
         env:
-          SKIP_SIGN: "true"
+          P12_B64: ${{ secrets.CODESIGN_P12 }}
+          P12_PASSWORD: ${{ secrets.CODESIGN_P12_PASSWORD }}
+        run: |
+          KEYCHAIN="$RUNNER_TEMP/build.keychain-db"
+          KEYCHAIN_PASSWORD=$(openssl rand -hex 32)
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
+          echo "$P12_B64" | base64 --decode > "$RUNNER_TEMP/cert.p12"
+          openssl pkcs12 -in "$RUNNER_TEMP/cert.p12" -nokeys -clcerts \
+            -passin pass:"$P12_PASSWORD" -out "$RUNNER_TEMP/cert.crt" -legacy
+          security import "$RUNNER_TEMP/cert.p12" \
+            -k "$KEYCHAIN" \
+            -P "$P12_PASSWORD" \
+            -T /usr/bin/codesign \
+            -A
+          security list-keychains -d user -s "$KEYCHAIN" $(security list-keychains -d user | tr -d '"')
+          security set-key-partition-list -S apple-tool:,apple: -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
+          security add-trusted-cert -p codeSign -k "$KEYCHAIN" "$RUNNER_TEMP/cert.crt"
+          rm "$RUNNER_TEMP/cert.p12" "$RUNNER_TEMP/cert.crt"
+          security find-identity -v -p codesigning
+
+      - name: Build signed DMG
+        env:
+          SELF_SIGN_IDENTITY: ${{ secrets.CODESIGN_IDENTITY }}
         run: ./scripts/build-release.sh ${{ steps.version.outputs.version }}
 
       - name: Compute SHA256

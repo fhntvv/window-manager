@@ -11,6 +11,15 @@ cask "windowmanager" do
 
   app "WindowManager.app"
 
+  uninstall quit: "com.windowmanager"
+
+  postflight do
+    system_command "/usr/bin/xattr",
+                   args: ["-dr", "com.apple.quarantine", "#{appdir}/WindowManager.app"]
+    system_command "/usr/bin/open",
+                   args: ["#{appdir}/WindowManager.app"]
+  end
+
   zap trash: [
     "~/Library/LaunchAgents/com.windowmanager.plist",
     "~/.config/windowmanager",

@@ -5,3 +5,4 @@
 # Swift build
 .build/
 .swiftpm/
+signing/
