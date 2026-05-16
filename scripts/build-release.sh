@@ -36,11 +36,38 @@ cp "${PROJECT_ROOT}/Resources/Info.plist" \
 
 echo "==> App bundle: ${APP_BUNDLE}"
 
-if [ "${SKIP_SIGN}" != "true" ]; then
-    : "${DEVELOPER_ID:?Set DEVELOPER_ID env var or pass SKIP_SIGN=true for unsigned build}"
-    : "${NOTARIZE_PROFILE:?Set NOTARIZE_PROFILE env var or pass SKIP_SIGN=true for unsigned build}"
+if [ "${SKIP_SIGN}" = "true" ]; then
+    echo "==> Skipping code signing (SKIP_SIGN=true)"
+elif [ -n "${SELF_SIGN_IDENTITY:-}" ]; then
+    echo "==> Self-signing .app with ${SELF_SIGN_IDENTITY}..."
 
-    echo "==> Code signing .app..."
+    CERT_SHA1=$(security find-certificate -c "${SELF_SIGN_IDENTITY}" -p \
+        | openssl x509 -outform der | shasum | awk '{print $1}')
+    if [ -z "${CERT_SHA1}" ]; then
+        echo "ERROR: cert '${SELF_SIGN_IDENTITY}' not found in keychain" >&2
+        exit 1
+    fi
+
+    REQ_FILE=$(mktemp)
+    cat > "${REQ_FILE}" <<EOF
+designated => identifier "${BUNDLE_ID}" and certificate leaf = H"${CERT_SHA1}"
+EOF
+
+    codesign --force --options runtime \
+        --sign "${SELF_SIGN_IDENTITY}" \
+        --identifier "${BUNDLE_ID}" \
+        --requirements "${REQ_FILE}" \
+        "${APP_BUNDLE}"
+
+    rm "${REQ_FILE}"
+    codesign --verify --strict "${APP_BUNDLE}"
+
+    echo "==> Designated requirement:"
+    codesign -d -r- "${APP_BUNDLE}" 2>&1 | tail -1
+elif [ -n "${DEVELOPER_ID:-}" ]; then
+    : "${NOTARIZE_PROFILE:?Set NOTARIZE_PROFILE env var when using DEVELOPER_ID}"
+
+    echo "==> Code signing .app with Developer ID..."
     codesign --force --options runtime \
         --sign "${DEVELOPER_ID}" \
         --entitlements "${PROJECT_ROOT}/Resources/Entitlements.plist" \
@@ -48,6 +75,9 @@ if [ "${SKIP_SIGN}" != "true" ]; then
         "${APP_BUNDLE}"
 
     codesign --verify --deep --strict "${APP_BUNDLE}"
+else
+    echo "ERROR: set SELF_SIGN_IDENTITY, DEVELOPER_ID, or SKIP_SIGN=true" >&2
+    exit 1
 fi
 
 echo "==> Creating DMG..."
@@ -56,7 +86,7 @@ hdiutil create -volname "${APP_NAME}" \
     -ov -format UDZO \
     "${DMG_PATH}"
 
-if [ "${SKIP_SIGN}" != "true" ]; then
+if [ "${SKIP_SIGN}" != "true" ] && [ -n "${DEVELOPER_ID:-}" ] && [ -z "${SELF_SIGN_IDENTITY:-}" ]; then
     codesign --force --sign "${DEVELOPER_ID}" --timestamp "${DMG_PATH}"
 
     echo "==> Submitting for notarization..."
