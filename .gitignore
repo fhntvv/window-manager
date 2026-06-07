@@ -5,4 +5,5 @@
 # Swift build
 .build/
 .swiftpm/
-signing/
+signing/*
+!signing/README.md
