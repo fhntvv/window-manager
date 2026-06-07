@@ -8,9 +8,42 @@ VERSION="${1:-1.0.0}"
 SKIP_SIGN="${SKIP_SIGN:-false}"
 
 PROJECT_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-BUILD_DIR="${PROJECT_ROOT}/.build/release-bundle"
-APP_BUNDLE="${BUILD_DIR}/${APP_NAME}.app"
-DMG_PATH="${BUILD_DIR}/${APP_NAME}-${VERSION}.dmg"
+
+if [ "${SKIP_SIGN}" = "true" ]; then
+    BUILD_DIR="${PROJECT_ROOT}/.build/release-bundle-unsigned"
+    BUNDLE_NAME="${APP_NAME}-UNSIGNED.app"
+    DMG_NAME="${APP_NAME}-${VERSION}-UNSIGNED.dmg"
+else
+    BUILD_DIR="${PROJECT_ROOT}/.build/release-bundle"
+    BUNDLE_NAME="${APP_NAME}.app"
+    DMG_NAME="${APP_NAME}-${VERSION}.dmg"
+fi
+
+APP_BUNDLE="${BUILD_DIR}/${BUNDLE_NAME}"
+DMG_PATH="${BUILD_DIR}/${DMG_NAME}"
+
+if [ "${SKIP_SIGN}" = "true" ]; then
+    cat >&2 <<'EOF'
+
+################################################################################
+# SKIP_SIGN=true -- producing an UNSIGNED development bundle.
+#
+# The output is named WindowManager-UNSIGNED.app and lives in
+# .build/release-bundle-unsigned/ so it cannot be confused with a release build.
+#
+# DO NOT install this bundle to /Applications. It will run, but macOS TCC
+# (Accessibility, Input Monitoring, etc.) cannot keep grants pinned to an
+# unsigned binary across upgrades -- the grant will silently break the next
+# time a properly signed build replaces it, and window operations will fail
+# with no visible error.
+#
+# To produce an installable bundle, run scripts/setup-signing.sh once to
+# install the local signing identity, then re-run this script without
+# SKIP_SIGN. Or use `make install` for the full local install flow.
+################################################################################
+
+EOF
+fi
 
 echo "==> Building ${APP_NAME} ${VERSION}"
 
@@ -76,7 +109,20 @@ elif [ -n "${DEVELOPER_ID:-}" ]; then
 
     codesign --verify --deep --strict "${APP_BUNDLE}"
 else
-    echo "ERROR: set SELF_SIGN_IDENTITY, DEVELOPER_ID, or SKIP_SIGN=true" >&2
+    cat >&2 <<EOF
+ERROR: no code signing identity available.
+
+Pick one:
+  - Run scripts/setup-signing.sh once to install the local self-signed identity,
+    then re-run this script (recommended for local installs).
+  - Export SELF_SIGN_IDENTITY="<keychain identity name>" if you already have a
+    different identity in your keychain.
+  - Export DEVELOPER_ID="<Apple Developer ID>" plus NOTARIZE_PROFILE to build
+    a notarized release.
+  - Export SKIP_SIGN=true to produce a development-only unsigned bundle
+    (cannot be installed to /Applications without breaking TCC -- see
+    scripts/build-release.sh warning).
+EOF
     exit 1
 fi
 
@@ -106,3 +152,16 @@ echo ""
 echo "Homebrew cask values:"
 echo "  version \"${VERSION}\""
 echo "  sha256 \"${DMG_SHA256}\""
+
+if [ "${SKIP_SIGN}" = "true" ]; then
+    cat >&2 <<'EOF'
+
+################################################################################
+# Reminder: this is an UNSIGNED build for development only.
+# Do NOT copy it to /Applications -- it will silently break the TCC grant
+# that any future signed build relies on. Use `make install` for the proper
+# local install flow.
+################################################################################
+
+EOF
+fi

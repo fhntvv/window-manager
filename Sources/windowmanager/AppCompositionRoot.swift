@@ -15,7 +15,6 @@ final class AppCompositionRoot {
     private var eventTap: CGEventTapAdapter?
     private var windowService: WindowOperationService?
     private var healthCheckTimer: Timer?
-    private var tccWatcher: DispatchSourceFileSystemObject?
     private var trustPollTimer: Timer?
 
     init() throws {
@@ -41,6 +40,7 @@ final class AppCompositionRoot {
     func run() {
         let app = NSApplication.shared
         app.setActivationPolicy(.accessory)
+        SignatureSelfCheck.runAndWarnIfMisconfigured(logger: logger)
         startWhenTrusted()
         app.run()
     }
@@ -53,29 +53,7 @@ final class AppCompositionRoot {
         }
 
         logger.info("waiting for Accessibility permission — will resume automatically when granted")
-        installTCCWatcher()
         installTrustPollTimer()
-    }
-
-    private func installTCCWatcher() {
-        let tccDir = FileManager.default.homeDirectoryForCurrentUser
-            .appendingPathComponent("Library/Application Support/com.apple.TCC", isDirectory: true)
-        let fd = open(tccDir.path, O_EVTONLY)
-        guard fd >= 0 else {
-            logger.warning("could not open TCC dir for watching (errno=\(errno)) — falling back to timer-only")
-            return
-        }
-        let source = DispatchSource.makeFileSystemObjectSource(
-            fileDescriptor: fd,
-            eventMask: .write,
-            queue: .main
-        )
-        source.setEventHandler { [weak self] in
-            MainActor.assumeIsolated { self?.checkAndStartIfTrusted() }
-        }
-        source.setCancelHandler { close(fd) }
-        source.resume()
-        self.tccWatcher = source
     }
 
     private func installTrustPollTimer() {
@@ -86,8 +64,6 @@ final class AppCompositionRoot {
 
     private func checkAndStartIfTrusted() {
         guard AXIsProcessTrusted() else { return }
-        tccWatcher?.cancel()
-        tccWatcher = nil
         trustPollTimer?.invalidate()
         trustPollTimer = nil
         startTrustedServices()
