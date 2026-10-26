@@ -17,7 +17,7 @@ public final class AXWindowAdapter: WindowAccessPort, @unchecked Sendable {
         // when Chrome's AX tree is lazy-uninitialized and the systemwide AX
         // query returns kAXErrorNoValue.
         guard let frontApp = NSWorkspace.shared.frontmostApplication else {
-            Log.windowOps.debug("getFocusedWindow: NSWorkspace has no frontmost application")
+            Log.windowOps.error("getFocusedWindow failed: NSWorkspace has no frontmost application")
             return nil
         }
         let pid = frontApp.processIdentifier
@@ -27,22 +27,23 @@ public final class AXWindowAdapter: WindowAccessPort, @unchecked Sendable {
         AXUIElementSetMessagingTimeout(appElement, 0.5)
 
         var focusedWindow: CFTypeRef?
-        var result = AXUIElementCopyAttributeValue(
+        let firstAXError = AXUIElementCopyAttributeValue(
             appElement,
             kAXFocusedWindowAttribute as CFString,
             &focusedWindow
         )
+        var result = firstAXError
 
-        var wokeUp = false
-        if result != .success {
+        var wake: FocusedWindowLogRecord.Wake?
+        if firstAXError != .success {
             // Chrome / Chromium-based apps lazy-initialize their AX tree.
             // Set both wake-up flags and give Chromium time to populate.
-            AXUIElementSetAttributeValue(
+            let manualAXWrite = AXUIElementSetAttributeValue(
                 appElement,
                 "AXManualAccessibility" as CFString,
                 kCFBooleanTrue
             )
-            AXUIElementSetAttributeValue(
+            let euiWrite = AXUIElementSetAttributeValue(
                 appElement,
                 "AXEnhancedUserInterface" as CFString,
                 kCFBooleanTrue
@@ -53,17 +54,38 @@ public final class AXWindowAdapter: WindowAccessPort, @unchecked Sendable {
                 kAXFocusedWindowAttribute as CFString,
                 &focusedWindow
             )
-            wokeUp = true
+            wake = .init(manualAXWrite: manualAXWrite, euiWrite: euiWrite, retryAXError: result)
         }
 
-        guard result == .success, let focusedWindow else {
-            Log.windowOps.debug("getFocusedWindow failed pid=\(pid) bundle=\(bundle) name=\(name) wokeUp=\(wokeUp) AXError=\(result.rawValue)")
+        func log(_ outcome: FocusedWindowLogRecord.Outcome) {
+            emit(FocusedWindowLogRecord(
+                pid: pid,
+                bundle: bundle,
+                name: name,
+                firstAXError: firstAXError,
+                wake: wake,
+                outcome: outcome
+            ))
+        }
+
+        guard result == .success else {
+            log(.readFailed(callerTrusted: AXIsProcessTrusted()))
+            return nil
+        }
+        guard let focusedWindow else {
+            log(.missingFocusedWindow(callerTrusted: AXIsProcessTrusted()))
             return nil
         }
 
-        Log.windowOps.debug("getFocusedWindow ok pid=\(pid) bundle=\(bundle) name=\(name) wokeUp=\(wokeUp)")
         let windowElement = focusedWindow as! AXUIElement
-        return windowInfo(from: windowElement)
+        switch windowInfo(from: windowElement) {
+        case let .success(info):
+            log(.ok)
+            return info
+        case let .failure(failure):
+            log(.windowUnreadable(failure, callerTrusted: AXIsProcessTrusted()))
+            return nil
+        }
     }
 
     public func setWindowFrame(_ window: WindowManagerDomain.WindowRef, position: CGPoint, size: CGSize) -> Bool {
@@ -71,7 +93,10 @@ public final class AXWindowAdapter: WindowAccessPort, @unchecked Sendable {
         let element = windowElements[window.id]
         lock.unlock()
 
-        guard let element else { return false }
+        guard let element else {
+            Log.windowOps.error("setWindowFrame failed: no element for window ref \(window.id)")
+            return false
+        }
 
         let start = DispatchTime.now()
 
@@ -82,7 +107,7 @@ public final class AXWindowAdapter: WindowAccessPort, @unchecked Sendable {
             : nil
 
         // Bound AX message timeouts so a wedged target can't tie up this queue
-        // (or hold the deferred EUI=true write hostage) for the 6s default.
+        // (or hold the EUI=true restore hostage) for the 6s default.
         AXUIElementSetMessagingTimeout(element, 0.5)
         if let appEl {
             AXUIElementSetMessagingTimeout(appEl, 0.5)
@@ -90,34 +115,31 @@ public final class AXWindowAdapter: WindowAccessPort, @unchecked Sendable {
 
         let wasZoomed = getBoolAttribute(element, "AXZoomed")
         if wasZoomed {
-            setBoolAttribute(element, "AXZoomed", false)
+            _ = setBoolAttribute(element, "AXZoomed", false)
         }
 
-        let wasEUI = appEl.map { getBoolAttribute($0, "AXEnhancedUserInterface") } ?? false
+        let euiRead = appEl.map { readBoolAttribute($0, "AXEnhancedUserInterface") }
+        let wasEUI = euiRead?.value ?? false
+        var euiOffAXError = AXError.success
         if wasEUI, let appEl {
-            setBoolAttribute(appEl, "AXEnhancedUserInterface", false)
+            euiOffAXError = setBoolAttribute(appEl, "AXEnhancedUserInterface", false)
             // Chromium rebuilds part of its AX tree on EUI flip; give it a tick.
             usleep(2_000)
         }
-        // If the app process dies between here and the defer, EUI stays false
+        // If the app process dies between here and the restore, EUI stays false
         // for the dead process — acceptable.
-        defer {
-            if wasEUI, let appEl {
-                setBoolAttribute(appEl, "AXEnhancedUserInterface", true)
-            }
-        }
 
-        var attempts = 0
+        var attempts: [WindowFrameLogRecord.Attempt] = []
         var ok = false
         for attempt in 0..<3 {
             if attempt > 0 {
                 usleep(50_000)
             }
-            attempts = attempt + 1
 
             let r1 = writePosition(element, position)
             let r2 = writeSize(element, size)
             let r3 = writePosition(element, position)
+            attempts.append(.init(position: r1, size: r2, positionAgain: r3))
 
             if r1 == .success && r2 == .success && r3 == .success {
                 ok = true
@@ -125,10 +147,22 @@ public final class AXWindowAdapter: WindowAccessPort, @unchecked Sendable {
             }
         }
 
+        var flip: WindowFrameLogRecord.Flip?
+        if wasEUI, let appEl {
+            let restoreAXError = setBoolAttribute(appEl, "AXEnhancedUserInterface", true)
+            flip = .init(offAXError: euiOffAXError, restoreAXError: restoreAXError)
+        }
+
         let elapsedMs = Double(DispatchTime.now().uptimeNanoseconds - start.uptimeNanoseconds) / 1_000_000
-        Log.windowOps.debug(
-            "setWindowFrame pid=\(pid) wasEUI=\(wasEUI) wasZoomed=\(wasZoomed) attempts=\(attempts) result=\(ok ? "ok" : "failed") elapsedMs=\(String(format: "%.1f", elapsedMs))"
-        )
+        emit(WindowFrameLogRecord(
+            pid: pid,
+            pidAXError: pidStatus,
+            eui: euiRead.map { .init(readAXError: $0.error, flip: flip) },
+            wasZoomed: wasZoomed,
+            attempts: attempts,
+            ok: ok,
+            elapsedMs: elapsedMs
+        ))
         return ok
     }
 
@@ -144,9 +178,25 @@ public final class AXWindowAdapter: WindowAccessPort, @unchecked Sendable {
         return AXUIElementSetAttributeValue(element, kAXSizeAttribute as CFString, value)
     }
 
-    private func setBoolAttribute(_ element: AXUIElement, _ attribute: String, _ value: Bool) {
+    private func setBoolAttribute(_ element: AXUIElement, _ attribute: String, _ value: Bool) -> AXError {
         let cfValue: CFBoolean = value ? kCFBooleanTrue : kCFBooleanFalse
-        AXUIElementSetAttributeValue(element, attribute as CFString, cfValue)
+        return AXUIElementSetAttributeValue(element, attribute as CFString, cfValue)
+    }
+
+    private func emit(_ record: FocusedWindowLogRecord) {
+        emit(record.message, isFailure: record.isFailure)
+    }
+
+    private func emit(_ record: WindowFrameLogRecord) {
+        emit(record.message, isFailure: record.isFailure)
+    }
+
+    private func emit(_ message: String, isFailure: Bool) {
+        if isFailure {
+            Log.windowOps.error(message)
+        } else {
+            Log.windowOps.notice(message)
+        }
     }
 
     public func getWindowInfo(_ window: WindowManagerDomain.WindowRef) -> WindowInfo? {
@@ -155,31 +205,29 @@ public final class AXWindowAdapter: WindowAccessPort, @unchecked Sendable {
         lock.unlock()
 
         guard let element else { return nil }
-        return buildWindowInfo(from: element, existingID: window.id)
+        return try? buildWindowInfo(from: element, existingID: window.id).get()
     }
 
-    private func windowInfo(from element: AXUIElement) -> WindowInfo? {
+    private func windowInfo(from element: AXUIElement) -> Result<WindowInfo, AttributeReadFailure> {
         let id = storeElement(element)
         return buildWindowInfo(from: element, existingID: id)
     }
 
-    private func buildWindowInfo(from element: AXUIElement, existingID: Int) -> WindowInfo? {
-        guard let position = getPointAttribute(element, kAXPositionAttribute),
-              let size = getSizeAttribute(element, kAXSizeAttribute)
-        else {
-            return nil
+    private func buildWindowInfo(from element: AXUIElement, existingID: Int) -> Result<WindowInfo, AttributeReadFailure> {
+        getPointAttribute(element, kAXPositionAttribute).flatMap { position in
+            getSizeAttribute(element, kAXSizeAttribute).map { size in
+                let isFullscreen = getBoolAttribute(element, "AXFullScreen")
+                let screenID = screenInfo.screenContaining(point: position)?.id ?? 0
+
+                return WindowInfo(
+                    ref: WindowManagerDomain.WindowRef(id: existingID),
+                    position: position,
+                    size: size,
+                    screenID: screenID,
+                    isFullscreen: isFullscreen
+                )
+            }
         }
-
-        let isFullscreen = getBoolAttribute(element, "AXFullScreen")
-        let screenID = screenInfo.screenContaining(point: position)?.id ?? 0
-
-        return WindowInfo(
-            ref: WindowManagerDomain.WindowRef(id: existingID),
-            position: position,
-            size: size,
-            screenID: screenID,
-            isFullscreen: isFullscreen
-        )
     }
 
     private func storeElement(_ element: AXUIElement) -> Int {
@@ -195,36 +243,41 @@ public final class AXWindowAdapter: WindowAccessPort, @unchecked Sendable {
         return id
     }
 
-    private func getPointAttribute(_ element: AXUIElement, _ attribute: String) -> CGPoint? {
-        var value: CFTypeRef?
-        guard AXUIElementCopyAttributeValue(element, attribute as CFString, &value) == .success,
-              let axValue = value
-        else {
-            return nil
+    private func getPointAttribute(_ element: AXUIElement, _ attribute: String) -> Result<CGPoint, AttributeReadFailure> {
+        copyAXValue(element, attribute).flatMap { axValue in
+            var point = CGPoint.zero
+            guard AXValueGetValue(axValue, .cgPoint, &point) else { return .failure(.decodeFailed(attribute: attribute)) }
+            return .success(point)
         }
-        var point = CGPoint.zero
-        guard AXValueGetValue(axValue as! AXValue, .cgPoint, &point) else { return nil }
-        return point
     }
 
-    private func getSizeAttribute(_ element: AXUIElement, _ attribute: String) -> CGSize? {
-        var value: CFTypeRef?
-        guard AXUIElementCopyAttributeValue(element, attribute as CFString, &value) == .success,
-              let axValue = value
-        else {
-            return nil
+    private func getSizeAttribute(_ element: AXUIElement, _ attribute: String) -> Result<CGSize, AttributeReadFailure> {
+        copyAXValue(element, attribute).flatMap { axValue in
+            var size = CGSize.zero
+            guard AXValueGetValue(axValue, .cgSize, &size) else { return .failure(.decodeFailed(attribute: attribute)) }
+            return .success(size)
         }
-        var size = CGSize.zero
-        guard AXValueGetValue(axValue as! AXValue, .cgSize, &size) else { return nil }
-        return size
+    }
+
+    private func copyAXValue(_ element: AXUIElement, _ attribute: String) -> Result<AXValue, AttributeReadFailure> {
+        var value: CFTypeRef?
+        let error = AXUIElementCopyAttributeValue(element, attribute as CFString, &value)
+        guard error == .success else { return .failure(.readFailed(attribute: attribute, error: error)) }
+        guard let axValue = value else { return .failure(.missingValue(attribute: attribute)) }
+        return .success(axValue as! AXValue)
     }
 
     private func getBoolAttribute(_ element: AXUIElement, _ attribute: String) -> Bool {
+        readBoolAttribute(element, attribute).value
+    }
+
+    private func readBoolAttribute(_ element: AXUIElement, _ attribute: String) -> (value: Bool, error: AXError) {
         var value: CFTypeRef?
-        guard AXUIElementCopyAttributeValue(element, attribute as CFString, &value) == .success else {
-            return false
+        let error = AXUIElementCopyAttributeValue(element, attribute as CFString, &value)
+        guard error == .success else {
+            return (false, error)
         }
-        return (value as? Bool) ?? false
+        return ((value as? Bool) ?? false, error)
     }
 
 }
