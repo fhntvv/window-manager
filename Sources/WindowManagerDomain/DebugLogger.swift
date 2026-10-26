@@ -22,6 +22,11 @@ public struct DebugLogger: Sendable {
         if Self.isDebugMode { emit("INFO", message) }
     }
 
+    public func notice(_ message: String) {
+        logger.notice("\(message, privacy: .public)")
+        if Self.isDebugMode { emit("NOTICE", message) }
+    }
+
     public func warning(_ message: String) {
         logger.warning("\(message, privacy: .public)")
         if Self.isDebugMode { emit("WARN", message) }
