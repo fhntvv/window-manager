@@ -46,6 +46,7 @@ final class AppCompositionRoot {
     }
 
     private func startWhenTrusted() {
+        AccessibilityReset.runOnceIfNeeded(logger: logger)
         let promptOptions = ["AXTrustedCheckOptionPrompt": true] as CFDictionary
         if AXIsProcessTrustedWithOptions(promptOptions) {
             startTrustedServices()

@@ -23,12 +23,12 @@ WindowManager is signed with a self-managed certificate rather than an Apple-iss
 
 WindowManager moves and resizes windows through the macOS Accessibility API, so it needs Accessibility access before any hotkey will work:
 
-1. On first launch, a system prompt appears. Click **Open System Settings** (or open **System Settings → Privacy & Security → Accessibility** yourself).
-2. Turn on the switch next to **WindowManager**.
+1. On first launch, a system prompt appears. Click **Open System Settings**. The list it opens lives under **System Settings → Privacy & Security**; it is called **Accessibility** on older macOS versions and **Device Control and Data Access** on newer ones.
+2. Turn on the switch next to **WindowManager**. If the row is missing, add the app with the **+** button first.
 
 Hotkeys begin working within a couple of seconds — no restart is required. Because the app is signed with a stable certificate, this grant persists across future upgrades; you only need to do it once.
 
-If you upgrade from a much older, unsigned build and hotkeys stop working, the stored permission may be pinned to the old binary. Remove WindowManager from the Accessibility list with the **−** button, then re-add and re-enable it.
+If you upgrade from a release older than 0.4.3, the stored permission is tied to that old binary and no longer matches. The first launch of the new build clears the stale entry and asks again; just turn the switch on. Turning the old switch off and on does not help. If hotkeys still do nothing, remove WindowManager from the list with the **−** button, then add it again.
 
 ## Default hotkeys
 
